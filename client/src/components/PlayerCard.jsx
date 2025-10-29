@@ -12,6 +12,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 
+const TIER_COLORS = {
+  'S-Tier': { bg: '#fee2e2', text: '#991b1b', border: '#ef4444', glow: 'rgba(239, 68, 68, 0.3)' },
+  'A-Tier': { bg: '#fef3c7', text: '#92400e', border: '#f59e0b', glow: 'rgba(245, 158, 11, 0.3)' },
+  'B-Tier': { bg: '#dbeafe', text: '#1e40af', border: '#3b82f6', glow: 'rgba(59, 130, 246, 0.3)' },
+  'Misc': { bg: '#f3f4f6', text: '#374151', border: '#6b7280', glow: 'rgba(107, 114, 128, 0.3)' }
+};
+
 export function PlayerCard({ registration, children }) {
   const [isHovered, setIsHovered] = useState(false);
   const [cardPosition, setCardPosition] = useState({ top: 0, left: 0 });
@@ -61,6 +68,22 @@ export function PlayerCard({ registration, children }) {
     >
       {children}
 
+      {/* Add pulse animation styles */}
+      {isHovered && (
+        <style>
+          {`
+            @keyframes pulse {
+              0%, 100% {
+                opacity: 1;
+              }
+              50% {
+                opacity: 0.5;
+              }
+            }
+          `}
+        </style>
+      )}
+
       {isHovered && (
         <>
           {/* Invisible bridge to prevent gap hover issues */}
@@ -86,11 +109,15 @@ export function PlayerCard({ registration, children }) {
               zIndex: 9999,
               backgroundColor: 'white',
               borderRadius: '0.5rem',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+              boxShadow: registration.category 
+                ? `0 10px 25px rgba(0,0,0,0.15), 0 0 20px ${TIER_COLORS[registration.category].glow}`
+                : '0 10px 25px rgba(0,0,0,0.15)',
               padding: '1rem',
               minWidth: '280px',
               maxWidth: '320px',
-              border: '1px solid #e5e7eb',
+              border: registration.category
+                ? `2px solid ${TIER_COLORS[registration.category].border}`
+                : '1px solid #e5e7eb',
               pointerEvents: 'auto'
             }}
             onMouseEnter={() => setIsHovered(true)}
@@ -167,6 +194,36 @@ export function PlayerCard({ registration, children }) {
               )}
             </div>
           </div>
+
+          {/* Player Category Badge */}
+          {registration.category && (
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                backgroundColor: TIER_COLORS[registration.category].bg,
+                color: TIER_COLORS[registration.category].text,
+                border: `2px solid ${TIER_COLORS[registration.category].border}`,
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                boxShadow: `0 0 12px ${TIER_COLORS[registration.category].glow}`
+              }}>
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: TIER_COLORS[registration.category].border,
+                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                }}></span>
+                {registration.category}
+              </div>
+            </div>
+          )}
 
           {/* Preferred Position */}
           <div style={{ marginBottom: '0.75rem' }}>

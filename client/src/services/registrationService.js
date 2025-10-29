@@ -59,16 +59,42 @@ export async function registerForTournament(registrationData) {
  */
 export async function getTournamentRegistrations(tournamentId) {
   try {
-    const { data, error } = await supabase
+    // First get all registrations
+    const { data: registrations, error: regError } = await supabase
       .from('registrations')
       .select('*')
       .eq('tournament_id', tournamentId)
       .eq('status', 'approved')
       .order('registered_at', { ascending: true });
 
-    if (error) throw error;
+    if (regError) throw regError;
 
-    return data || [];
+    if (!registrations || registrations.length === 0) {
+      return [];
+    }
+
+    // Then get categories for these users in this tournament
+    const { data: categories, error: catError } = await supabase
+      .from('player_categories')
+      .select('user_id, category')
+      .eq('tournament_id', tournamentId)
+      .in('user_id', registrations.map(r => r.user_id));
+
+    if (catError) throw catError;
+
+    // Create a map of user_id to category
+    const categoryMap = new Map();
+    (categories || []).forEach(cat => {
+      categoryMap.set(cat.user_id, cat.category);
+    });
+
+    // Merge categories with registrations
+    const registrationsWithCategories = registrations.map(reg => ({
+      ...reg,
+      category: categoryMap.get(reg.user_id) || null
+    }));
+
+    return registrationsWithCategories;
   } catch (error) {
     console.error('Error fetching tournament registrations:', error);
     return [];

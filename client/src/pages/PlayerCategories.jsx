@@ -84,7 +84,24 @@ export default function PlayerCategories() {
   async function handleAssignCategory(player, category) {
     try {
       await assignPlayerCategory(id, player.user_id, category);
-      await loadData(); // Reload all data
+      
+      // Update state locally instead of reloading
+      // Remove from uncategorized
+      setUncategorized(prev => prev.filter(p => p.user_id !== player.user_id));
+      
+      // Add to categorized with the assigned category
+      const categorizedPlayer = { ...player, category, assigned_at: new Date().toISOString() };
+      setCategorized(prev => ({
+        ...prev,
+        [category]: [...(prev[category] || []), categorizedPlayer]
+      }));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        [category]: (prev[category] || 0) + 1,
+        total: prev.total + 1
+      }));
     } catch (err) {
       console.error('Error assigning category:', err);
       alert('Failed to assign category: ' + err.message);
@@ -94,7 +111,28 @@ export default function PlayerCategories() {
   async function handleRemoveCategory(player) {
     try {
       await removePlayerCategory(id, player.user_id);
-      await loadData(); // Reload all data
+      
+      // Update state locally instead of reloading
+      const playerCategory = player.category;
+      
+      // Remove from categorized
+      setCategorized(prev => ({
+        ...prev,
+        [playerCategory]: prev[playerCategory].filter(p => p.user_id !== player.user_id)
+      }));
+      
+      // Add back to uncategorized (without category field)
+      const { category, assigned_at, ...uncategorizedPlayer } = player;
+      setUncategorized(prev => [...prev, uncategorizedPlayer].sort((a, b) => 
+        new Date(a.registered_at) - new Date(b.registered_at)
+      ));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        [playerCategory]: Math.max(0, (prev[playerCategory] || 0) - 1),
+        total: Math.max(0, prev.total - 1)
+      }));
     } catch (err) {
       console.error('Error removing category:', err);
       alert('Failed to remove category: ' + err.message);
