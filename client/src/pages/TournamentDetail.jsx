@@ -13,6 +13,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getTournament, updateTournament } from '../services/tournamentService';
 import { getTournamentMaps } from '../services/mapService';
+import { getTournamentRegistrations, getUserRegistration } from '../services/registrationService';
 
 export function TournamentDetail() {
   const { id } = useParams();
@@ -21,6 +22,8 @@ export function TournamentDetail() {
   
   const [tournament, setTournament] = useState(null);
   const [maps, setMaps] = useState([]);
+  const [registrations, setRegistrations] = useState([]);
+  const [userRegistration, setUserRegistration] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [publishing, setPublishing] = useState(false);
@@ -41,6 +44,16 @@ export function TournamentDetail() {
       // Load maps
       const mapsData = await getTournamentMaps(id);
       setMaps(mapsData);
+
+      // Load registrations (if registration is open or closed)
+      if (tournamentData.status === 'registration_open' || tournamentData.status === 'registration_closed') {
+        const registrationsData = await getTournamentRegistrations(id);
+        setRegistrations(registrationsData);
+
+        // Check user's registration status
+        const userReg = await getUserRegistration(id);
+        setUserRegistration(userReg);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -415,8 +428,8 @@ export function TournamentDetail() {
         </div>
       </div>
 
-      {/* Registration Section (future) */}
-      {isRegistrationOpen && (
+      {/* Registration Section */}
+      {(isRegistrationOpen || tournament.status === 'registration_closed') && (
         <div style={{
           marginTop: '2rem',
           backgroundColor: 'white',
@@ -424,21 +437,136 @@ export function TournamentDetail() {
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           padding: '1.5rem'
         }}>
-          <h2 style={{
-            fontSize: '1.25rem',
-            fontWeight: '600',
-            marginBottom: '1rem',
-            color: '#111827'
-          }}>
-            Registrations
-          </h2>
           <div style={{
-            textAlign: 'center',
-            padding: '2rem',
-            color: '#6b7280'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem'
           }}>
-            Registration system coming soon...
+            <h2 style={{
+              fontSize: '1.25rem',
+              fontWeight: '600',
+              color: '#111827',
+              margin: 0
+            }}>
+              Participants ({registrations.length})
+            </h2>
+            {isRegistrationOpen && !userRegistration && !isAdmin && (
+              <button
+                onClick={() => navigate(`/tournaments/${id}/register`)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Register Now
+              </button>
+            )}
+            {userRegistration && (
+              <div style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#dcfce7',
+                color: '#166534',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                fontWeight: '600'
+              }}>
+                ✓ You are registered
+              </div>
+            )}
           </div>
+
+          {registrations.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '2rem',
+              color: '#6b7280'
+            }}>
+              No participants yet. Be the first to register!
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '1rem'
+            }}>
+              {registrations.map((registration) => (
+                <div
+                  key={registration.id}
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.375rem',
+                    padding: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem'
+                  }}
+                >
+                  {/* Avatar */}
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    backgroundColor: '#e5e7eb',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}>
+                    {registration.discord_avatar_url ? (
+                      <img
+                        src={registration.discord_avatar_url}
+                        alt={registration.discord_username}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.5rem',
+                        fontWeight: 'bold',
+                        color: '#9ca3af'
+                      }}>
+                        {registration.discord_username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Player Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontWeight: '600',
+                      color: '#111827',
+                      fontSize: '0.875rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {registration.discord_username}
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: '#6b7280',
+                      marginTop: '0.125rem'
+                    }}>
+                      {registration.preferred_position === 'flank' ? 'Flank' : 'Pocket'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

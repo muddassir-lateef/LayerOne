@@ -12,6 +12,7 @@ import { Profile } from './pages/Profile';
 import { Dashboard } from './pages/Dashboard';
 import { CreateTournament } from './pages/CreateTournament';
 import { TournamentDetail } from './pages/TournamentDetail';
+import { TournamentRegistration } from './pages/TournamentRegistration';
 import './App.css';
 
 function App() {
@@ -55,6 +56,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <TournamentDetail />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/tournaments/:id/register" 
+            element={
+              <ProtectedRoute>
+                <TournamentRegistration />
               </ProtectedRoute>
             } 
           />
