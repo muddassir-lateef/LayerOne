@@ -28,7 +28,7 @@ const DraftRoom = () => {
   const [availablePlayers, setAvailablePlayers] = useState([]);
   const [draftPicks, setDraftPicks] = useState([]);
   const [captainPresence, setCaptainPresence] = useState([]);
-  const [captainRegistrations, setCaptainRegistrations] = useState({});
+  const [playerRegistrations, setPlayerRegistrations] = useState({});
   const [realtimeChannel, setRealtimeChannel] = useState(null);
   const [currentTeam, setCurrentTeam] = useState(null);
   const [myTeam, setMyTeam] = useState(null);
@@ -42,6 +42,13 @@ const DraftRoom = () => {
   useEffect(() => {
     loadDraftData();
   }, [tournamentId]);
+
+  // Update current pick whenever draft session, teams, or picks change
+  useEffect(() => {
+    if (draftSession && teams.length > 0) {
+      updateCurrentPick(draftSession, teams, draftPicks);
+    }
+  }, [draftSession?.status, draftSession?.current_category, teams, draftPicks, user?.id]);
 
   // Set up Realtime channel after draft session is loaded
   useEffect(() => {
@@ -211,22 +218,20 @@ const DraftRoom = () => {
       const picks = await getDraftPicks(session.id);
       setDraftPicks(picks);
 
-      // Load captain registrations
-      const captainIds = teamsData.map(t => t.captain_id);
+      // Load ALL player registrations (not just captains)
       const { data: registrations, error: regError } = await supabase
         .from('registrations')
         .select('*')
-        .eq('tournament_id', tournamentId)
-        .in('user_id', captainIds);
+        .eq('tournament_id', tournamentId);
 
       if (regError) throw regError;
       
-      // Create a map of captain_id -> registration
+      // Create a map of user_id -> registration
       const regMap = {};
       registrations.forEach(reg => {
         regMap[reg.user_id] = reg;
       });
-      setCaptainRegistrations(regMap);
+      setPlayerRegistrations(regMap);
 
       // Calculate current pick
       updateCurrentPick(session, teamsData, picks);
@@ -240,6 +245,12 @@ const DraftRoom = () => {
   };
 
   const updateCurrentPick = (session, teamsData, picks) => {
+    console.log('Updating current pick...', {
+      sessionStatus: session.status,
+      picksCount: picks.length,
+      userId: user?.id
+    });
+
     if (session.status !== 'in_progress') {
       setCurrentTeam(null);
       setIsMyTurn(false);
@@ -249,6 +260,9 @@ const DraftRoom = () => {
     const pickNumber = picks.length;
     const nextTeam = getNextPickTeam(teamsData, pickNumber);
     
+    console.log('Next team to pick:', nextTeam);
+    console.log('Is my turn?', nextTeam?.captain_id === user?.id);
+    
     setCurrentTeam(nextTeam);
     setIsMyTurn(nextTeam?.captain_id === user?.id);
   };
@@ -256,20 +270,30 @@ const DraftRoom = () => {
   const handlePickUpdate = async (payload) => {
     console.log('Pick update:', payload);
     
-    // Only reload picks and update current pick
-    if (draftSession?.id) {
-      const picks = await getDraftPicks(draftSession.id);
-      setDraftPicks(picks);
-      
-      // Update available players for current category
-      if (draftSession.current_category) {
-        const players = await getAvailablePlayers(tournamentId, draftSession.current_category);
-        setAvailablePlayers(players);
-      }
-      
-      // Update current pick
-      updateCurrentPick(draftSession, teams, picks);
+    // Reload the session first to get updated category
+    const session = await getDraftSession(tournamentId);
+    if (!session) return;
+    
+    setDraftSession(session);
+    
+    // Reload teams to get latest data
+    const teamsData = await getTeams(tournamentId);
+    setTeams(teamsData);
+    
+    // Reload picks
+    const picks = await getDraftPicks(session.id);
+    setDraftPicks(picks);
+    
+    // Update available players for the UPDATED category from session
+    if (session.current_category) {
+      console.log('Loading available players for category:', session.current_category);
+      const players = await getAvailablePlayers(tournamentId, session.current_category);
+      console.log('Available players loaded:', players.length);
+      setAvailablePlayers(players);
     }
+    
+    // Update current pick with fresh teams data
+    updateCurrentPick(session, teamsData, picks);
   };
 
   const handleSessionUpdate = async (payload) => {
@@ -277,7 +301,13 @@ const DraftRoom = () => {
     
     // Only reload session and related data
     const session = await getDraftSession(tournamentId);
+    if (!session) return;
+    
     setDraftSession(session);
+    
+    // Reload teams to ensure we have latest data
+    const teamsData = await getTeams(tournamentId);
+    setTeams(teamsData);
     
     // Update available players if category changed
     if (session.current_category) {
@@ -285,9 +315,14 @@ const DraftRoom = () => {
       setAvailablePlayers(players);
     }
     
-    // Update current pick
+    // Update current pick with fresh teams data
     const picks = await getDraftPicks(session.id);
-    updateCurrentPick(session, teams, picks);
+    setDraftPicks(picks);
+    updateCurrentPick(session, teamsData, picks);
+    
+    // Update my team reference
+    const myTeamData = teamsData.find(t => t.captain_id === user?.id);
+    setMyTeam(myTeamData);
   };
 
   const handlePresenceUpdate = async (payload) => {
@@ -306,13 +341,18 @@ const DraftRoom = () => {
       setPicking(true);
       setError(null);
 
+      console.log('Picking player:', player);
+      console.log('Current team:', myTeam);
+      console.log('Draft session:', draftSession);
+
       const pickNumber = draftPicks.length;
       const roundNumber = Math.floor(pickNumber / teams.length) + 1;
 
+      // The player object from get_available_draft_players has user_id field
       await makePick(
         draftSession.id,
         myTeam.id,
-        player.user_id,
+        player.user_id, // This should be the correct user ID from registrations
         pickNumber,
         roundNumber,
         draftSession.current_category
@@ -350,7 +390,8 @@ const DraftRoom = () => {
 
     } catch (err) {
       console.error('Error making pick:', err);
-      setError(err.message);
+      console.error('Error details:', err.details, err.hint, err.message);
+      setError(err.message || 'Failed to make pick');
     } finally {
       setPicking(false);
     }
@@ -433,7 +474,7 @@ const DraftRoom = () => {
               const presence = captainPresence.find(p => p.captain_id === team.captain_id);
               const isOnline = presence?.is_online || false;
               
-              const captainReg = captainRegistrations[team.captain_id];
+              const captainReg = playerRegistrations[team.captain_id];
               
               return (
                 <PlayerCard key={team.id} registration={captainReg}>
@@ -478,7 +519,8 @@ const DraftRoom = () => {
             {captainPresence.filter(p => p.is_online).length} / {teams.length} captains connected
           </div>
 
-          {isAdmin && draftSession.all_captains_connected && (
+          {/* Show Start Draft button when admin and all captains connected via Presence */}
+          {isAdmin && captainPresence.filter(p => p.is_online).length === teams.length && teams.length > 0 && (
             <button onClick={handleStartDraft} className="btn-primary btn-large">
               Start Draft
             </button>
@@ -489,16 +531,56 @@ const DraftRoom = () => {
       {/* Draft in progress */}
       {(draftSession?.status === 'in_progress' || draftSession?.status === 'ready') && (
         <div className="draft-content">
-          {/* Current Pick Indicator */}
+          {/* Current Pick Indicator with Captain Cards */}
           <div className="current-pick-section">
+            {/* Captain Status Cards */}
+            <div className="draft-captains-status">
+              {teams.map(team => {
+                const presence = captainPresence.find(p => p.captain_id === team.captain_id);
+                const isOnline = presence?.is_online || false;
+                const captainReg = playerRegistrations[team.captain_id];
+                const isCurrentPick = currentTeam?.id === team.id;
+                
+                return (
+                  <div 
+                    key={team.id} 
+                    className={`captain-status-card ${isCurrentPick ? 'current-turn' : ''} ${isOnline ? 'online' : 'offline'}`}
+                  >
+                    <div className="captain-status-avatar">
+                      {captainReg?.discord_avatar_url ? (
+                        <img
+                          src={captainReg.discord_avatar_url}
+                          alt={captainReg.discord_username}
+                          className="captain-avatar-img"
+                        />
+                      ) : (
+                        <div className="captain-avatar-placeholder">
+                          {captainReg?.discord_username?.charAt(0).toUpperCase() || team.draft_order}
+                        </div>
+                      )}
+                      <div className={`presence-dot ${isOnline ? 'online' : 'offline'}`} />
+                    </div>
+                    <div className="captain-status-info">
+                      <div className="captain-status-name">
+                        {captainReg?.discord_username || `Captain ${team.draft_order}`}
+                      </div>
+                      <div className="captain-status-team">Team {team.draft_order}</div>
+                      {isCurrentPick && <div className="current-pick-indicator">🎯 PICKING</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Current Pick Banner */}
             {currentTeam && (
               <div className={`current-pick ${isMyTurn ? 'my-turn' : ''}`}>
                 {isMyTurn ? (
                   <h2>🎯 YOUR TURN TO PICK!</h2>
                 ) : (
-                  <h2>Current Pick: Team {currentTeam.draft_order} - {currentTeam.name}</h2>
+                  <h2>Waiting for {playerRegistrations[currentTeam.captain_id]?.discord_username || `Team ${currentTeam.draft_order}`}</h2>
                 )}
-                <p>Pick #{draftPicks.length + 1} - Round {Math.floor(draftPicks.length / teams.length) + 1}</p>
+                <p>Pick #{draftPicks.length + 1} - Round {Math.floor(draftPicks.length / teams.length) + 1} - {draftSession.current_category}</p>
               </div>
             )}
           </div>
@@ -515,23 +597,24 @@ const DraftRoom = () => {
               ) : (
                 <div className="players-grid">
                   {availablePlayers.map(player => (
-                    <div
-                      key={player.user_id}
-                      className={`player-card ${isMyTurn && !isSpectator ? 'pickable' : ''}`}
-                      onClick={() => isMyTurn && !isSpectator && handlePlayerPick(player)}
-                      style={{ cursor: isMyTurn && !isSpectator ? 'pointer' : 'default' }}
-                    >
-                      <img
-                        src={player.discord_avatar_url || `https://i.pravatar.cc/150?u=${player.user_id}`}
-                        alt={player.discord_username}
-                        className="player-avatar"
-                      />
-                      <div className="player-info">
-                        <div className="player-name">{player.discord_username}</div>
-                        <div className="player-position">{player.preferred_position}</div>
-                        <div className="player-category-badge">{player.category}</div>
+                    <PlayerCard key={player.user_id} registration={player}>
+                      <div
+                        className={`player-card ${isMyTurn && !isSpectator ? 'pickable' : ''}`}
+                        onClick={() => isMyTurn && !isSpectator && handlePlayerPick(player)}
+                        style={{ cursor: isMyTurn && !isSpectator ? 'pointer' : 'default' }}
+                      >
+                        <img
+                          src={player.discord_avatar_url || `https://i.pravatar.cc/150?u=${player.user_id}`}
+                          alt={player.discord_username}
+                          className="player-avatar"
+                        />
+                        <div className="player-info">
+                          <div className="player-name">{player.discord_username}</div>
+                          <div className="player-position">{player.preferred_position}</div>
+                          <div className="player-category-badge">{player.category}</div>
+                        </div>
                       </div>
-                    </div>
+                    </PlayerCard>
                   ))}
                 </div>
               )}
@@ -539,26 +622,70 @@ const DraftRoom = () => {
 
             {/* Teams Roster */}
             <div className="teams-panel">
-              <h3>Teams</h3>
+              <h3>Team Rosters</h3>
               <div className="teams-list">
-                {teams.map(team => (
-                  <div key={team.id} className={`team-card ${team.id === currentTeam?.id ? 'active-pick' : ''} ${team.id === myTeam?.id ? 'my-team' : ''}`}>
-                    <div className="team-header">
-                      <h4>Team {team.draft_order}: {team.name}</h4>
-                      <span className="team-size">{team.team_members?.length || 0} players</span>
-                    </div>
-                    <div className="team-members-mini">
-                      {team.team_members?.map(member => (
-                        <div key={member.user_id} className="team-member-mini">
-                          {member.is_captain && '⭐ '}
-                          <span className={`category-badge-mini ${member.category_when_drafted}`}>
-                            {member.category_when_drafted?.charAt(0)}
-                          </span>
+                {teams.map(team => {
+                  const teamPicks = draftPicks.filter(p => p.team_id === team.id);
+                  const captainReg = playerRegistrations[team.captain_id];
+                  
+                  return (
+                    <div key={team.id} className={`team-roster-card ${team.id === currentTeam?.id ? 'active-pick' : ''} ${team.id === myTeam?.id ? 'my-team' : ''}`}>
+                      <div className="team-roster-header">
+                        <div className="team-roster-title">
+                          <h4>{team.name}</h4>
+                          <span className="team-order-badge">#{team.draft_order}</span>
                         </div>
-                      ))}
+                        <span className="team-member-count">{teamPicks.length + 1} players</span>
+                      </div>
+                      
+                      {/* Captain */}
+                      <div className="team-captain-section">
+                        <div className="team-member-mini-card captain">
+                          {captainReg?.discord_avatar_url ? (
+                            <img src={captainReg.discord_avatar_url} alt={captainReg.discord_username} className="mini-avatar" />
+                          ) : (
+                            <div className="mini-avatar-placeholder">{captainReg?.discord_username?.charAt(0) || 'C'}</div>
+                          )}
+                          <div className="mini-card-info">
+                            <div className="mini-card-name">⭐ {captainReg?.discord_username || 'Captain'}</div>
+                            <div className="mini-card-category s-tier">S-Tier</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Drafted Players */}
+                      <div className="team-drafted-players">
+                        {teamPicks.length === 0 ? (
+                          <div className="no-picks-yet">No picks yet</div>
+                        ) : (
+                          teamPicks.map((pick) => {
+                            // Direct lookup from playerRegistrations map
+                            const playerReg = playerRegistrations[pick.user_id];
+                            
+                            return (
+                              <PlayerCard key={pick.id} registration={playerReg ? { ...playerReg, category: pick.category, team_name: team.name } : null}>
+                                <div className="team-member-mini-card" title={`Pick #${pick.pick_number + 1} - Round ${pick.round_number}`}>
+                                  {playerReg?.discord_avatar_url ? (
+                                    <img src={playerReg.discord_avatar_url} alt={playerReg.discord_username} className="mini-avatar" />
+                                  ) : (
+                                    <div className="mini-avatar-placeholder">?</div>
+                                  )}
+                                  <div className="mini-card-info">
+                                    <div className="mini-card-name">{playerReg?.discord_username || 'Player'}</div>
+                                    <div className={`mini-card-category ${pick.category.toLowerCase().replace('-', '')}`}>
+                                      {pick.category}
+                                    </div>
+                                  </div>
+                                  <div className="pick-number-badge">#{pick.pick_number + 1}</div>
+                                </div>
+                              </PlayerCard>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

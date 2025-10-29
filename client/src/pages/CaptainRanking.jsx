@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { PlayerCard } from '../components/PlayerCard';
 import './CaptainRanking.css';
 
 // Sortable Captain Card Component
@@ -24,34 +25,36 @@ const SortableCaptainCard = React.memo(function SortableCaptainCard({ captain, i
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={`captain-card ${isDragging ? 'dragging' : ''}`}
-    >
-      <div className="captain-rank">#{index + 1}</div>
-      <img 
-        src={captain.discord_avatar_url || `https://i.pravatar.cc/150?u=${captain.user_id}`}
-        alt={captain.discord_username}
-        className="captain-avatar"
-      />
-      <div className="captain-info">
-        <div className="captain-name">{captain.discord_username}</div>
-        <div className="captain-tier">S-Tier Captain</div>
+    <PlayerCard registration={{ ...captain, category: 'S-Tier' }}>
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className={`captain-card ${isDragging ? 'dragging' : ''}`}
+      >
+        <div className="captain-rank">#{index + 1}</div>
+        <img 
+          src={captain.discord_avatar_url || `https://i.pravatar.cc/150?u=${captain.user_id}`}
+          alt={captain.discord_username}
+          className="captain-avatar"
+        />
+        <div className="captain-info">
+          <div className="captain-name">{captain.discord_username}</div>
+          <div className="captain-tier">S-Tier Captain</div>
+        </div>
+        <div className="drag-handle">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <circle cx="6" cy="5" r="2"/>
+            <circle cx="14" cy="5" r="2"/>
+            <circle cx="6" cy="10" r="2"/>
+            <circle cx="14" cy="10" r="2"/>
+            <circle cx="6" cy="15" r="2"/>
+            <circle cx="14" cy="15" r="2"/>
+          </svg>
+        </div>
       </div>
-      <div className="drag-handle">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-          <circle cx="6" cy="5" r="2"/>
-          <circle cx="14" cy="5" r="2"/>
-          <circle cx="6" cy="10" r="2"/>
-          <circle cx="14" cy="10" r="2"/>
-          <circle cx="6" cy="15" r="2"/>
-          <circle cx="14" cy="15" r="2"/>
-        </svg>
-      </div>
-    </div>
+    </PlayerCard>
   );
 });
 
@@ -120,7 +123,7 @@ const CaptainRanking = () => {
         // Get registration details for these users
         const { data: registrationsData, error: registrationsError } = await supabase
           .from('registrations')
-          .select('user_id, discord_username, discord_avatar_url, preferred_position, notes')
+          .select('*')
           .eq('tournament_id', tournamentId)
           .in('user_id', sTierUserIds);
 
@@ -129,13 +132,7 @@ const CaptainRanking = () => {
         // Map to captain objects
         const captainsMap = {};
         registrationsData.forEach(reg => {
-          captainsMap[reg.user_id] = {
-            user_id: reg.user_id,
-            discord_username: reg.discord_username,
-            discord_avatar_url: reg.discord_avatar_url,
-            preferred_position: reg.preferred_position,
-            notes: reg.notes,
-          };
+          captainsMap[reg.user_id] = reg;
         });
 
         // Order captains by saved draft_order
@@ -160,20 +157,14 @@ const CaptainRanking = () => {
         // Get registration details for these users
         const { data: registrationsData, error: registrationsError } = await supabase
           .from('registrations')
-          .select('user_id, discord_username, discord_avatar_url, preferred_position, notes')
+          .select('*')
           .eq('tournament_id', tournamentId)
           .in('user_id', sTierUserIds);
 
         if (registrationsError) throw registrationsError;
 
         // Transform data
-        const captainsList = registrationsData.map(reg => ({
-          user_id: reg.user_id,
-          discord_username: reg.discord_username,
-          discord_avatar_url: reg.discord_avatar_url,
-          preferred_position: reg.preferred_position,
-          notes: reg.notes,
-        }));
+        const captainsList = registrationsData;
 
         setCaptains(captainsList);
         setRankingSaved(false);
@@ -230,13 +221,39 @@ const CaptainRanking = () => {
               .eq('id', team.id);
 
             if (updateError) throw updateError;
+
+            // Ensure captain is in team_members (if not already)
+            const { data: existingMember, error: checkMemberError } = await supabase
+              .from('team_members')
+              .select('id')
+              .eq('team_id', team.id)
+              .eq('user_id', captain.user_id)
+              .maybeSingle();
+
+            if (checkMemberError) throw checkMemberError;
+
+            if (!existingMember) {
+              // Add captain to team_members
+              const { error: insertMemberError } = await supabase
+                .from('team_members')
+                .insert({
+                  team_id: team.id,
+                  user_id: captain.user_id,
+                  is_captain: true,
+                  category_when_drafted: 'S-Tier',
+                  draft_round: 0,
+                  draft_pick_number: 0,
+                });
+
+              if (insertMemberError) throw insertMemberError;
+            }
           }
         }
       } else {
-        // Create new teams with ranking
+        // Create new teams with ranking - use captain's name for team name
         const teamsToCreate = captains.map((captain, index) => ({
           tournament_id: tournamentId,
-          name: `Team ${index + 1}`,
+          name: captain.discord_username ? `${captain.discord_username} Team` : `Team ${index + 1}`,
           captain_id: captain.user_id,
           draft_order: index + 1,
         }));

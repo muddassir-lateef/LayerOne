@@ -715,3 +715,330 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Captain Status Cards (During Draft) */
+.draft-captains-status {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+
+.captain-status-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  min-width: 200px;
+}
+
+.captain-status-card.online {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.captain-status-card.offline {
+  opacity: 0.6;
+  border-color: #e5e7eb;
+}
+
+.captain-status-card.current-turn {
+  border-color: #4f46e5;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  transform: scale(1.05);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+  50% { box-shadow: 0 4px 20px rgba(79, 70, 229, 0.5); }
+}
+
+.captain-status-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.captain-avatar-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+}
+
+.captain-status-card.online .captain-avatar-img {
+  border-color: #22c55e;
+}
+
+.captain-status-card.current-turn .captain-avatar-img {
+  border-color: #4f46e5;
+}
+
+.captain-avatar-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #6b7280;
+  border: 2px solid #e5e7eb;
+}
+
+.presence-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.presence-dot.online {
+  background: #22c55e;
+}
+
+.presence-dot.offline {
+  background: #9ca3af;
+}
+
+.captain-status-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.captain-status-name {
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.captain-status-team {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.current-pick-indicator {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #4f46e5;
+  background: #eef2ff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-top: 4px;
+  display: inline-block;
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Team Roster Cards */
+.teams-panel h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+.team-roster-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.team-roster-card.active-pick {
+  border-color: #4f46e5;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+.team-roster-card.my-team {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.team-roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.team-roster-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.team-roster-title h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.team-order-badge {
+  background: #4f46e5;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+.team-member-count {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.team-captain-section {
+  margin-bottom: 0.75rem;
+}
+
+.team-drafted-players {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.no-picks-yet {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  padding: 1rem;
+  font-style: italic;
+}
+
+.team-member-mini-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.team-member-mini-card:hover {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateX(4px);
+}
+
+.team-member-mini-card.captain {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #fbbf24;
+}
+
+.mini-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.team-member-mini-card.captain .mini-avatar {
+  border-color: #fbbf24;
+}
+
+.mini-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #6b7280;
+  border: 2px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.mini-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mini-card-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-card-category {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 0.25rem;
+}
+
+.mini-card-category.s-tier,
+.mini-card-category.stier {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.mini-card-category.a-tier,
+.mini-card-category.atier {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.mini-card-category.b-tier,
+.mini-card-category.btier {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.mini-card-category.misc {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.pick-number-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}

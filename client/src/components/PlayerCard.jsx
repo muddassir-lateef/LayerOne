@@ -225,6 +225,26 @@ export function PlayerCard({ registration, children }) {
             </div>
           )}
 
+          {/* Team Badge */}
+          {registration.team_name && (
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                backgroundColor: '#eef2ff',
+                color: '#4338ca',
+                border: '2px solid #4f46e5',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: '700'
+              }}>
+                🏆 {registration.team_name}
+              </div>
+            </div>
+          )}
+
           {/* Preferred Position */}
           <div style={{ marginBottom: '0.75rem' }}>
             <div style={{

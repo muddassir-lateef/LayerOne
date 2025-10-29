@@ -14,6 +14,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { getTournament, updateTournament } from '../services/tournamentService';
 import { getTournamentMaps } from '../services/mapService';
 import { getTournamentRegistrations, getUserRegistration } from '../services/registrationService';
+import { getTeams } from '../services/draftService';
+import { supabase } from '../lib/supabase';
 import { PlayerCard } from '../components/PlayerCard';
 
 export function TournamentDetail() {
@@ -24,6 +26,7 @@ export function TournamentDetail() {
   const [tournament, setTournament] = useState(null);
   const [maps, setMaps] = useState([]);
   const [registrations, setRegistrations] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [userRegistration, setUserRegistration] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,11 +52,88 @@ export function TournamentDetail() {
       // Load registrations (if tournament is published - not in draft)
       if (tournamentData.status !== 'draft') {
         const registrationsData = await getTournamentRegistrations(id);
-        setRegistrations(registrationsData);
+        
+        // Get all team members for this tournament in one query
+        const { data: teamMembersData, error: teamMembersError } = await supabase
+          .from('team_members')
+          .select(`
+            user_id,
+            teams!inner (
+              id,
+              name,
+              tournament_id
+            )
+          `)
+          .eq('teams.tournament_id', id);
+
+        if (teamMembersError) {
+          console.error('Error fetching team members:', teamMembersError);
+        }
+
+        // Create a map of user_id -> team_name
+        const userTeamMap = {};
+        if (teamMembersData) {
+          teamMembersData.forEach(tm => {
+            userTeamMap[tm.user_id] = tm.teams.name;
+          });
+        }
+
+        console.log('User team map:', userTeamMap); // Debug log
+
+        // Enhance registrations with team info
+        const registrationsWithTeams = registrationsData.map(reg => ({
+          ...reg,
+          team_name: userTeamMap[reg.user_id] || null
+        }));
+
+        console.log('Registrations with teams:', registrationsWithTeams); // Debug log
+        setRegistrations(registrationsWithTeams);
 
         // Check user's registration status
         const userReg = await getUserRegistration(id);
         setUserRegistration(userReg);
+      }
+
+      // Load teams if draft is complete or in progress
+      if (['draft_ready', 'draft_in_progress', 'teams_finalized'].includes(tournamentData.status)) {
+        const teamsData = await getTeams(id);
+        
+        // Load team members and their registration info
+        const teamsWithMembers = await Promise.all(teamsData.map(async (team) => {
+          const { data: members } = await supabase
+            .from('team_members')
+            .select('user_id, is_captain, category_when_drafted, draft_round, draft_pick_number')
+            .eq('team_id', team.id)
+            .order('draft_pick_number', { ascending: true });
+
+          if (!members) return { ...team, members: [] };
+
+          // Get registration info for each member
+          const membersWithInfo = await Promise.all(members.map(async (member) => {
+            const { data: reg, error: regError } = await supabase
+              .from('registrations')
+              .select('*')
+              .eq('tournament_id', id)
+              .eq('user_id', member.user_id)
+              .maybeSingle();
+
+            if (regError) {
+              console.error('Error fetching registration for user:', member.user_id, regError);
+            }
+
+            return { 
+              ...member,
+              ...reg,
+              category_when_drafted: member.category_when_drafted, // Preserve draft category
+              team_name: team.name // Add team name
+            };
+          }));
+
+          return { ...team, members: membersWithInfo };
+        }));
+
+        console.log('Teams with members:', teamsWithMembers); // Debug log
+        setTeams(teamsWithMembers);
       }
     } catch (err) {
       setError(err.message);
@@ -636,8 +716,209 @@ export function TournamentDetail() {
           )}
         </div>
       )}
+
+      {/* Teams Section - Show after draft starts */}
+      {teams.length > 0 && (
+        <div style={{
+          marginTop: '2rem',
+          backgroundColor: 'white',
+          borderRadius: '0.5rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          padding: '1.5rem'
+        }}>
+          <h2 style={{
+            fontSize: '1.25rem',
+            fontWeight: '600',
+            color: '#111827',
+            marginBottom: '1.5rem'
+          }}>
+            Teams ({teams.length})
+          </h2>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '1.5rem'
+          }}>
+            {teams.map((team) => (
+              <div key={team.id} style={{
+                border: '2px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                backgroundColor: '#f9fafb',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#4f46e5';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.boxShadow = 'none';
+              }}>
+                {/* Team Header */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '1rem',
+                  paddingBottom: '0.75rem',
+                  borderBottom: '2px solid #e5e7eb'
+                }}>
+                  <h3 style={{
+                    fontSize: '1.125rem',
+                    fontWeight: '700',
+                    color: '#111827',
+                    margin: 0
+                  }}>
+                    {team.name}
+                  </h3>
+                  <div style={{
+                    background: '#4f46e5',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '6px'
+                  }}>
+                    #{team.draft_order}
+                  </div>
+                </div>
+
+                {/* Team Members */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
+                }}>
+                  {team.members.map((member) => (
+                    <PlayerCard 
+                      key={member.user_id} 
+                      registration={{
+                        ...member,
+                        category: member.category_when_drafted,
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.625rem',
+                        background: member.is_captain ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'white',
+                        border: `1px solid ${member.is_captain ? '#fbbf24' : '#e5e7eb'}`,
+                        borderRadius: '8px',
+                        transition: 'transform 0.2s ease',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateX(0)';
+                      }}>
+                        {/* Avatar */}
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          border: `2px solid ${member.is_captain ? '#fbbf24' : '#e5e7eb'}`,
+                          flexShrink: 0,
+                          backgroundColor: '#e5e7eb'
+                        }}>
+                          {member.discord_avatar_url ? (
+                            <img
+                              src={member.discord_avatar_url}
+                              alt={member.discord_username}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            <div style={{
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '1.25rem',
+                              fontWeight: 'bold',
+                              color: '#6b7280'
+                            }}>
+                              {member.discord_username?.charAt(0).toUpperCase() || '?'}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Member Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            color: '#111827',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {member.is_captain && '⭐ '}{member.discord_username || 'Unknown'}
+                          </div>
+                          <div style={{
+                            fontSize: '0.75rem',
+                            color: '#6b7280',
+                            marginTop: '0.125rem'
+                          }}>
+                            {member.preferred_position === 'flank' ? 'Flank' : 'Pocket'}
+                          </div>
+                        </div>
+
+                        {/* Category Badge */}
+                        <div style={{
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          background: getCategoryColor(member.category_when_drafted).bg,
+                          color: getCategoryColor(member.category_when_drafted).text
+                        }}>
+                          {member.category_when_drafted}
+                        </div>
+                      </div>
+                    </PlayerCard>
+                  ))}
+                </div>
+
+                {/* Team Stats */}
+                <div style={{
+                  marginTop: '1rem',
+                  paddingTop: '0.75rem',
+                  borderTop: '1px solid #e5e7eb',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '0.75rem',
+                  color: '#6b7280'
+                }}>
+                  <span>Total: {team.members.length} players</span>
+                  <span>Pick Order: #{team.draft_order}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function getCategoryColor(category) {
+  const colors = {
+    'S-Tier': { bg: '#fef3c7', text: '#92400e' },
+    'A-Tier': { bg: '#dbeafe', text: '#1e40af' },
+    'B-Tier': { bg: '#e0e7ff', text: '#4338ca' },
+    'Misc': { bg: '#f3f4f6', text: '#374151' }
+  };
+  return colors[category] || colors['Misc'];
 }
 
 function getStatusLabel(status) {
