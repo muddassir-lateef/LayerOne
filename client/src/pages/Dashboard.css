@@ -1,0 +1,260 @@
+/**
+ * Dashboard Page Styles
+ */
+
+.dashboard-container {
+  min-height: 100vh;
+  background: #f7fafc;
+}
+
+.dashboard-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+/* Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  gap: 24px;
+}
+
+.dashboard-header h1 {
+  font-size: 32px;
+  color: #1a202c;
+  margin-bottom: 4px;
+}
+
+.dashboard-subtitle {
+  color: #718096;
+  font-size: 16px;
+}
+
+.btn-create-tournament {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.btn-create-tournament:hover {
+  background-color: #5568d3;
+}
+
+.icon-plus {
+  width: 20px;
+  height: 20px;
+}
+
+/* Error Message */
+.error-message {
+  background: #fed7d7;
+  border: 1px solid #fc8181;
+  color: #c53030;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-retry {
+  padding: 6px 16px;
+  background: white;
+  color: #c53030;
+  border: 1px solid #c53030;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.btn-retry:hover {
+  background-color: #fff5f5;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 80px 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  color: #cbd5e0;
+  margin: 0 auto 24px;
+}
+
+.empty-state h2 {
+  font-size: 24px;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  color: #718096;
+  font-size: 16px;
+  margin-bottom: 32px;
+}
+
+.btn-create-first {
+  padding: 14px 32px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-create-first:hover {
+  background-color: #5568d3;
+}
+
+/* Tournaments Grid */
+.tournaments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+/* Tournament Card */
+.tournament-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tournament-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tournament-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tournament-name {
+  font-size: 20px;
+  color: #1a202c;
+  font-weight: 600;
+  flex: 1;
+  line-height: 1.3;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-draft {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.status-open {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.status-closed {
+  background: #fed7d7;
+  color: #c53030;
+}
+
+.status-progress {
+  background: #bee3f8;
+  color: #2c5282;
+}
+
+.status-completed {
+  background: #d6bcfa;
+  color: #553c9a;
+}
+
+.tournament-description {
+  color: #4a5568;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.tournament-meta {
+  display: flex;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #718096;
+  font-size: 14px;
+}
+
+.meta-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .dashboard-content {
+    padding: 24px 16px;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 24px;
+  }
+  
+  .btn-create-tournament {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .tournaments-grid {
+    grid-template-columns: 1fr;
+  }
+}

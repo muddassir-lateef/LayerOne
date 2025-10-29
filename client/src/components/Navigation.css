@@ -1,0 +1,155 @@
+/**
+ * Navigation Styles
+ */
+
+.navigation {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+/* Brand */
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: #1a202c;
+  font-weight: 700;
+  font-size: 18px;
+  transition: color 0.2s;
+}
+
+.nav-brand:hover {
+  color: #667eea;
+}
+
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  color: #667eea;
+}
+
+/* Navigation Links */
+.nav-links {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  margin-left: 48px;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #4a5568;
+  font-weight: 500;
+  font-size: 15px;
+  transition: color 0.2s;
+  padding: 8px 0;
+  position: relative;
+}
+
+.nav-link:hover {
+  color: #667eea;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #667eea;
+  transform: scaleX(0);
+  transition: transform 0.2s;
+}
+
+.nav-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* User Menu */
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #2d3748;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.user-profile-link:hover {
+  background-color: #f7fafc;
+}
+
+.user-avatar-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #667eea;
+}
+
+.user-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-signout-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #fee;
+  color: #e53e3e;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-signout-nav:hover {
+  background-color: #fed7d7;
+}
+
+.signout-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .nav-links {
+    display: none;
+  }
+  
+  .user-name {
+    display: none;
+  }
+  
+  .nav-brand span {
+    display: none;
+  }
+}

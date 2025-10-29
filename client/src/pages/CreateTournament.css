@@ -1,0 +1,218 @@
+/**
+ * Create Tournament Page Styles
+ */
+
+.create-tournament-container {
+  min-height: 100vh;
+  background: #f7fafc;
+  padding: 40px 24px;
+}
+
+.create-tournament-card {
+  max-width: 700px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Form Header */
+.form-header {
+  margin-bottom: 32px;
+}
+
+.form-header h1 {
+  font-size: 28px;
+  color: #1a202c;
+  margin-bottom: 8px;
+}
+
+.form-subtitle {
+  color: #718096;
+  font-size: 16px;
+}
+
+/* Tournament Info Box */
+.tournament-info-box {
+  background: #edf2f7;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 32px;
+}
+
+.tournament-info-box h3 {
+  font-size: 16px;
+  color: #2d3748;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.info-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #4a5568;
+  font-size: 14px;
+}
+
+.info-icon {
+  width: 20px;
+  height: 20px;
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+/* Form */
+.tournament-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 14px;
+}
+
+.form-input,
+.form-textarea {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  color: #1a202c;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-input.input-error,
+.form-textarea.input-error {
+  border-color: #fc8181;
+}
+
+.form-input:disabled,
+.form-textarea:disabled {
+  background-color: #f7fafc;
+  cursor: not-allowed;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.char-count {
+  font-size: 13px;
+  color: #a0aec0;
+  text-align: right;
+}
+
+.error-text {
+  color: #e53e3e;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.submit-error {
+  background: #fed7d7;
+  border: 1px solid #fc8181;
+  color: #c53030;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.btn-cancel {
+  padding: 12px 24px;
+  background: white;
+  color: #4a5568;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background-color: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-submit {
+  padding: 12px 32px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background-color: #5568d3;
+}
+
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .create-tournament-container {
+    padding: 24px 16px;
+  }
+  
+  .create-tournament-card {
+    padding: 24px;
+  }
+  
+  .form-header h1 {
+    font-size: 24px;
+  }
+  
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .btn-cancel,
+  .btn-submit {
+    width: 100%;
+  }
+}
