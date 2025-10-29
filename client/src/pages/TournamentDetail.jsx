@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getTournament, updateTournament } from '../services/tournamentService';
 import { getTournamentMaps } from '../services/mapService';
 import { getTournamentRegistrations, getUserRegistration } from '../services/registrationService';
+import { PlayerCard } from '../components/PlayerCard';
 
 export function TournamentDetail() {
   const { id } = useParams();
@@ -213,6 +214,23 @@ export function TournamentDetail() {
                 }}
               >
                 {publishing ? 'Closing...' : 'Close Registration'}
+              </button>
+            )}
+            {(isRegistrationOpen || tournament.status === 'registration_closed') && (
+              <button
+                onClick={() => navigate(`/tournaments/${id}/categories`)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Categorize Players
               </button>
             )}
             <button
@@ -497,73 +515,85 @@ export function TournamentDetail() {
               gap: '1rem'
             }}>
               {registrations.map((registration) => (
-                <div
-                  key={registration.id}
-                  style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '0.375rem',
-                    padding: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem'
-                  }}
-                >
-                  {/* Avatar */}
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    backgroundColor: '#e5e7eb',
-                    overflow: 'hidden',
-                    flexShrink: 0
-                  }}>
-                    {registration.discord_avatar_url ? (
-                      <img
-                        src={registration.discord_avatar_url}
-                        alt={registration.discord_username}
-                        style={{
+                <PlayerCard key={registration.id} registration={registration}>
+                  <div
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '0.375rem',
+                      padding: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      backgroundColor: 'white'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#4f46e5';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(79, 70, 229, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    {/* Avatar */}
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      backgroundColor: '#e5e7eb',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}>
+                      {registration.discord_avatar_url ? (
+                        <img
+                          src={registration.discord_avatar_url}
+                          alt={registration.discord_username}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
                           width: '100%',
                           height: '100%',
-                          objectFit: 'cover'
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '1.5rem',
-                        fontWeight: 'bold',
-                        color: '#9ca3af'
-                      }}>
-                        {registration.discord_username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.5rem',
+                          fontWeight: 'bold',
+                          color: '#9ca3af'
+                        }}>
+                          {registration.discord_username.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Player Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontWeight: '600',
-                      color: '#111827',
-                      fontSize: '0.875rem',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {registration.discord_username}
-                    </div>
-                    <div style={{
-                      fontSize: '0.75rem',
-                      color: '#6b7280',
-                      marginTop: '0.125rem'
-                    }}>
-                      {registration.preferred_position === 'flank' ? 'Flank' : 'Pocket'}
+                    {/* Player Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontWeight: '600',
+                        color: '#111827',
+                        fontSize: '0.875rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {registration.discord_username}
+                      </div>
+                      <div style={{
+                        fontSize: '0.75rem',
+                        color: '#6b7280',
+                        marginTop: '0.125rem'
+                      }}>
+                        {registration.preferred_position === 'flank' ? 'Flank' : 'Pocket'}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </PlayerCard>
               ))}
             </div>
           )}

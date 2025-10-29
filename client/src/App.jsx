@@ -13,6 +13,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CreateTournament } from './pages/CreateTournament';
 import { TournamentDetail } from './pages/TournamentDetail';
 import { TournamentRegistration } from './pages/TournamentRegistration';
+import PlayerCategories from './pages/PlayerCategories';
 import './App.css';
 
 function App() {
@@ -65,6 +66,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <TournamentRegistration />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/tournaments/:id/categories" 
+            element={
+              <ProtectedRoute>
+                <PlayerCategories />
               </ProtectedRoute>
             } 
           />
