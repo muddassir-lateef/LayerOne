@@ -16,6 +16,8 @@ import { TournamentRegistration } from './pages/TournamentRegistration';
 import PlayerCategories from './pages/PlayerCategories';
 import CaptainRanking from './pages/CaptainRanking';
 import DraftRoom from './pages/DraftRoom';
+import TeamManagement from './pages/TeamManagement';
+import BracketView from './pages/BracketView';
 import './App.css';
 
 function App() {
@@ -95,6 +97,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <DraftRoom />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/tournaments/:id/teams" 
+            element={
+              <ProtectedRoute>
+                <TeamManagement />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/tournaments/:id/bracket" 
+            element={
+              <ProtectedRoute>
+                <BracketView />
               </ProtectedRoute>
             } 
           />

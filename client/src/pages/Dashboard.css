@@ -266,6 +266,113 @@
   height: 16px;
 }
 
+/* Scheduled Matches Section */
+.scheduled-matches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.scheduled-match-card {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scheduled-match-card:hover {
+  border-color: #7c3aed;
+  box-shadow: 0 4px 6px rgba(124, 58, 237, 0.1);
+  transform: translateY(-2px);
+}
+
+.scheduled-match-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  min-width: 120px;
+  color: white;
+}
+
+.time-icon {
+  font-size: 1.5rem;
+}
+
+.time-details {
+  text-align: center;
+}
+
+.time-date {
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.time-hour {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.scheduled-match-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.match-tournament {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.match-teams {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.match-team {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.team-logo-tiny {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+}
+
+.match-vs {
+  color: #9ca3af;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.match-format {
+  font-size: 0.875rem;
+  color: #6b7280;
+  text-transform: capitalize;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .dashboard-content {
@@ -287,5 +394,28 @@
   
   .tournaments-grid {
     grid-template-columns: 1fr;
+  }
+
+  .scheduled-match-card {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .scheduled-match-time {
+    flex-direction: row;
+    min-width: auto;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .match-teams {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .match-vs {
+    transform: rotate(90deg);
+    margin: -0.5rem 0;
   }
 }

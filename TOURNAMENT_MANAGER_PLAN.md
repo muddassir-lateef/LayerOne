@@ -402,8 +402,8 @@ captain_presence (
 - **Playoff Phase**:
   - Top 4 teams from round robin advance
   - **Semifinals** (2 matches):
-    - Match 1: 3rd place vs 4th place (Bo3)
-    - Match 2: 1st place vs 2nd place (Bo3)
+    - Match 1: 1st place vs 4th place (Bo3)
+    - Match 2: 2nd place vs 3rd place (Bo3)
   - **Grand Final**:
     - Winners of semifinals (Bo5)
 

@@ -87,19 +87,24 @@ export function PlayerCard({ registration, children }) {
       {isHovered && (
         <>
           {/* Invisible bridge to prevent gap hover issues */}
-          <div
-            style={{
-              position: 'fixed',
-              top: `${cardPosition.top}px`,
-              left: `${Math.min(cardPosition.left, triggerRef.current?.getBoundingClientRect().right || 0)}px`,
-              width: `${Math.abs(cardPosition.left - (triggerRef.current?.getBoundingClientRect().right || 0))}px`,
-              height: `${triggerRef.current?.getBoundingClientRect().height || 0}px`,
-              zIndex: 9998,
-              pointerEvents: 'auto'
-            }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          />
+          {triggerRef.current && cardRef.current && (
+            <div
+              style={{
+                position: 'fixed',
+                top: `${Math.min(cardPosition.top, triggerRef.current.getBoundingClientRect().top)}px`,
+                left: `${triggerRef.current.getBoundingClientRect().right}px`,
+                width: `${Math.abs(cardPosition.left - triggerRef.current.getBoundingClientRect().right) + 20}px`,
+                height: `${Math.max(
+                  cardRef.current.getBoundingClientRect().height,
+                  triggerRef.current.getBoundingClientRect().bottom - Math.min(cardPosition.top, triggerRef.current.getBoundingClientRect().top)
+                )}px`,
+                zIndex: 9998,
+                pointerEvents: 'auto'
+              }}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            />
+          )}
           <div
             ref={cardRef}
             style={{

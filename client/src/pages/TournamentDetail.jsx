@@ -15,6 +15,7 @@ import { getTournament, updateTournament } from '../services/tournamentService';
 import { getTournamentMaps } from '../services/mapService';
 import { getTournamentRegistrations, getUserRegistration } from '../services/registrationService';
 import { getTeams } from '../services/draftService';
+import { getTournamentUpcomingMatches } from '../services/scheduleService';
 import { supabase } from '../lib/supabase';
 import { PlayerCard } from '../components/PlayerCard';
 
@@ -27,6 +28,7 @@ export function TournamentDetail() {
   const [maps, setMaps] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [scheduledMatches, setScheduledMatches] = useState([]);
   const [userRegistration, setUserRegistration] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -95,7 +97,7 @@ export function TournamentDetail() {
       }
 
       // Load teams if draft is complete or in progress
-      if (['draft_ready', 'draft_in_progress', 'teams_finalized'].includes(tournamentData.status)) {
+      if (['draft_ready', 'draft_in_progress', 'teams_finalized', 'in_progress', 'completed'].includes(tournamentData.status)) {
         const teamsData = await getTeams(id);
         
         // Load team members and their registration info
@@ -134,6 +136,19 @@ export function TournamentDetail() {
 
         console.log('Teams with members:', teamsWithMembers); // Debug log
         setTeams(teamsWithMembers);
+      }
+
+      // Load scheduled matches if tournament has started
+      if (['in_progress', 'completed'].includes(tournamentData.status)) {
+        try {
+          const upcomingMatches = await getTournamentUpcomingMatches(id, 20);
+          console.log('Tournament status:', tournamentData.status);
+          console.log('Scheduled matches loaded:', upcomingMatches);
+          console.log('Number of scheduled matches:', upcomingMatches?.length || 0);
+          setScheduledMatches(upcomingMatches);
+        } catch (err) {
+          console.error('Error loading scheduled matches:', err);
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -365,6 +380,44 @@ export function TournamentDetail() {
             }}
           >
             {tournament.status === 'draft_in_progress' ? '🔴 Go to Live Draft' : '📋 Go to Draft Room'}
+          </button>
+        )}
+
+        {/* Manage Teams button - visible to admin when teams exist */}
+        {isAdmin && teams.length > 0 && (
+          <button
+            onClick={() => navigate(`/tournaments/${id}/teams`)}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              borderRadius: '0.375rem',
+              fontWeight: '600',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.875rem'
+            }}
+          >
+            ⚙️ Manage Teams
+          </button>
+        )}
+
+        {/* View Bracket button - visible when tournament has matches */}
+        {(tournament.status === 'in_progress' || tournament.status === 'completed') && (
+          <button
+            onClick={() => navigate(`/tournaments/${id}/bracket`)}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#10b981',
+              color: 'white',
+              borderRadius: '0.375rem',
+              fontWeight: '600',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.875rem'
+            }}
+          >
+            🏆 View Bracket
           </button>
         )}
       </div>
@@ -901,6 +954,226 @@ export function TournamentDetail() {
                 }}>
                   <span>Total: {team.members.length} players</span>
                   <span>Pick Order: #{team.draft_order}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Scheduled Matches Section */}
+      {scheduledMatches.length > 0 && (
+        <div style={{
+          marginTop: '2rem',
+          backgroundColor: 'white',
+          borderRadius: '0.5rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          padding: '1.5rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem'
+          }}>
+            <h2 style={{
+              fontSize: '1.25rem',
+              fontWeight: '600',
+              color: '#111827',
+              margin: 0
+            }}>
+              📅 Scheduled Matches
+            </h2>
+            <button
+              onClick={() => navigate(`/tournaments/${id}/bracket`)}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#4f46e5',
+                color: 'white',
+                borderRadius: '0.375rem',
+                fontWeight: '600',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              View Full Bracket
+            </button>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
+            {scheduledMatches.map((match) => (
+              <div
+                key={match.id}
+                onClick={() => navigate(`/tournaments/${id}/bracket`)}
+                style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.5rem',
+                  padding: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  backgroundColor: 'white'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#4f46e5';
+                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(79, 70, 229, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                {/* Match Time */}
+                <div style={{
+                  minWidth: '140px',
+                  padding: '0.75rem',
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                  borderRadius: '0.5rem',
+                  color: 'white',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    fontSize: '1.5rem',
+                    marginBottom: '0.25rem'
+                  }}>
+                    📅
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    opacity: 0.9
+                  }}>
+                    {new Date(match.scheduled_time).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </div>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    fontWeight: '700',
+                    marginTop: '0.25rem'
+                  }}>
+                    {new Date(match.scheduled_time).toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                </div>
+
+                {/* Match Info */}
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    marginBottom: '0.5rem'
+                  }}>
+                    {match.phase.replace('_', ' ')} • Best of {match.best_of}
+                  </div>
+                  
+                  {/* Teams */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      flex: 1
+                    }}>
+                      {match.team1?.logo_url && (
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          border: '2px solid #e5e7eb',
+                          overflow: 'hidden',
+                          flexShrink: 0
+                        }}>
+                          <img
+                            src={match.team1.logo_url}
+                            alt={match.team1.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        </div>
+                      )}
+                      <span style={{
+                        fontWeight: '600',
+                        color: '#111827',
+                        fontSize: '0.875rem'
+                      }}>
+                        {match.team1?.name || 'TBD'}
+                      </span>
+                    </div>
+
+                    <span style={{
+                      fontSize: '0.875rem',
+                      fontWeight: '700',
+                      color: '#6b7280'
+                    }}>
+                      VS
+                    </span>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      flex: 1
+                    }}>
+                      {match.team2?.logo_url && (
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          border: '2px solid #e5e7eb',
+                          overflow: 'hidden',
+                          flexShrink: 0
+                        }}>
+                          <img
+                            src={match.team2.logo_url}
+                            alt={match.team2.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        </div>
+                      )}
+                      <span style={{
+                        fontWeight: '600',
+                        color: '#111827',
+                        fontSize: '0.875rem'
+                      }}>
+                        {match.team2?.name || 'TBD'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div style={{
+                  fontSize: '1.5rem',
+                  color: '#9ca3af'
+                }}>
+                  →
                 </div>
               </div>
             ))}

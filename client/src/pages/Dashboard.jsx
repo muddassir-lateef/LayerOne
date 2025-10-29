@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserTournaments, getPublicTournaments, getTournamentStatusText } from '../services/tournamentService';
+import { getAllScheduledMatches } from '../services/scheduleService';
 import './Dashboard.css';
 
 export function Dashboard() {
@@ -16,6 +17,7 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [myTournaments, setMyTournaments] = useState([]);
   const [publicTournaments, setPublicTournaments] = useState([]);
+  const [scheduledMatches, setScheduledMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -47,6 +49,14 @@ export function Dashboard() {
         t.admin_id !== user?.id
       );
       setPublicTournaments(filtered);
+    }
+
+    // Load scheduled matches
+    try {
+      const matches = await getAllScheduledMatches();
+      setScheduledMatches(matches || []);
+    } catch (err) {
+      console.error('Error loading scheduled matches:', err);
     }
     
     setLoading(false);
@@ -118,7 +128,71 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* Open Tournaments Section */}
+        {/* Scheduled Matches Section */}
+        {scheduledMatches.length > 0 && (
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: '600', 
+              marginBottom: '1rem',
+              color: '#111827'
+            }}>
+              📅 Upcoming Scheduled Matches
+            </h2>
+            <div className="scheduled-matches-list">
+              {scheduledMatches.map((match) => (
+                <div
+                  key={match.id}
+                  className="scheduled-match-card"
+                  onClick={() => navigate(`/tournaments/${match.tournament.id}/bracket`)}
+                >
+                  <div className="scheduled-match-time">
+                    <div className="time-icon">📅</div>
+                    <div className="time-details">
+                      <div className="time-date">
+                        {new Date(match.scheduled_time).toLocaleDateString('en-US', { 
+                          weekday: 'short', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </div>
+                      <div className="time-hour">
+                        {new Date(match.scheduled_time).toLocaleTimeString('en-US', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="scheduled-match-info">
+                    <div className="match-tournament">{match.tournament.name}</div>
+                    <div className="match-teams">
+                      <div className="match-team">
+                        {match.team1?.logo_url && (
+                          <img src={match.team1.logo_url} alt="" className="team-logo-tiny" />
+                        )}
+                        <span>{match.team1?.name || 'TBD'}</span>
+                      </div>
+                      <span className="match-vs">vs</span>
+                      <div className="match-team">
+                        {match.team2?.logo_url && (
+                          <img src={match.team2.logo_url} alt="" className="team-logo-tiny" />
+                        )}
+                        <span>{match.team2?.name || 'TBD'}</span>
+                      </div>
+                    </div>
+                    <div className="match-format">
+                      {match.phase.replace('_', ' ')} • Bo{match.best_of}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* My Tournaments Section */}
         {publicTournaments.length > 0 && (
           <div style={{ marginBottom: '3rem' }}>
             <h2 style={{ 
