@@ -174,31 +174,36 @@ export async function updateDraftSession(draftSessionId, updates) {
 }
 
 /**
- * Get captain presence for draft session
+ * Log a draft event to the audit log
  */
-export async function getCaptainPresence(draftSessionId) {
+export async function logDraftEvent(draftSessionId, eventType, actorId, teamId, metadata = {}) {
   const { data, error } = await supabase
-    .from('captain_presence')
-    .select('*')
-    .eq('draft_session_id', draftSessionId);
+    .rpc('log_draft_event', {
+      p_draft_session_id: draftSessionId,
+      p_event_type: eventType,
+      p_actor_id: actorId,
+      p_team_id: teamId,
+      p_metadata: metadata
+    });
   
-  if (error) throw error;
-  return data || [];
+  if (error) {
+    console.error('Error logging draft event:', error);
+    // Don't throw - event logging is non-critical
+  }
+  return data;
 }
 
 /**
- * Update captain heartbeat
+ * Get draft timeline (all events chronologically)
  */
-export async function updateHeartbeat(captainPresenceId) {
-  const { error } = await supabase
-    .from('captain_presence')
-    .update({
-      last_heartbeat: new Date().toISOString(),
-      is_online: true
-    })
-    .eq('id', captainPresenceId);
+export async function getDraftTimeline(draftSessionId) {
+  const { data, error } = await supabase
+    .rpc('get_draft_timeline', {
+      p_draft_session_id: draftSessionId
+    });
   
   if (error) throw error;
+  return data || [];
 }
 
 /**

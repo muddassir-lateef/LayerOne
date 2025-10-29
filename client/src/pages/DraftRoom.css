@@ -17,6 +17,31 @@
   font-weight: bold;
   color: #111827;
   margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.spectator-badge {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f59e0b;
+  background: #fef3c7;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid #fbbf24;
+}
+
+.spectator-notice {
+  background: #fffbeb;
+  border: 2px solid #fbbf24;
+  color: #92400e;
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
 }
 
 .draft-status {
@@ -68,7 +93,224 @@
 .waiting-section h3 {
   font-size: 1.5rem;
   color: #374151;
+  margin-bottom: 3rem;
+}
+
+.captain-presence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto 2rem;
+}
+
+.captain-presence-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.captain-presence-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #e5e7eb 0%, #d1d5db 100%);
+  transition: all 0.3s ease;
+}
+
+.captain-presence-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.captain-presence-card.online {
+  border-color: #22c55e;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2);
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.captain-presence-card.online::before {
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+}
+
+.captain-presence-card.online:hover {
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+}
+
+.captain-presence-card.offline {
+  border-color: #e5e7eb;
+  opacity: 0.8;
+}
+
+.captain-presence-avatar-wrapper {
+  position: relative;
+}
+
+.captain-presence-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 4px solid #e5e7eb;
+  object-fit: cover;
+  background: #f3f4f6;
+  transition: all 0.3s ease;
+}
+
+.captain-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #9ca3af;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.captain-presence-card.online .captain-presence-avatar {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.presence-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 3px solid white;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.presence-indicator.online {
+  background: #22c55e;
+  color: white;
+  animation: pulse-online 2s ease-in-out infinite;
+}
+
+.presence-indicator.offline {
+  background: #64748b;
+  color: #cbd5e1;
+}
+
+@keyframes pulse-online {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+}
+
+.captain-presence-info {
+  text-align: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.captain-presence-name {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #111827;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.captain-presence-team {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.captain-category-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0.25rem 0;
+}
+
+.captain-category-badge.stier {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+.captain-category-badge.atier {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.captain-category-badge.btier {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #3b82f6;
+}
+
+.captain-category-badge.misc {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #6b7280;
+}
+
+.captain-presence-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.25rem;
+}
+
+.captain-presence-status.online {
+  color: #16a34a;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.captain-presence-status.offline {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.connection-summary {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #6b7280;
   margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid #e5e7eb;
 }
 
 /* Current Pick Section */
@@ -168,6 +410,12 @@
   border-color: #4f46e5;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
   transform: translateY(-2px);
+  cursor: pointer;
+}
+
+.player-card:not(.pickable) {
+  cursor: default;
+  opacity: 0.8;
 }
 
 .player-avatar {

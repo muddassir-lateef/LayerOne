@@ -188,6 +188,11 @@ export function getTournamentStatusText(status) {
     draft: 'Draft',
     registration_open: 'Registration Open',
     registration_closed: 'Registration Closed',
+    categorizing: 'Categorizing Players',
+    awaiting_captain_ranking: 'Awaiting Captain Ranking',
+    draft_ready: 'Draft Ready',
+    draft_in_progress: 'Draft In Progress',
+    teams_finalized: 'Teams Finalized',
     in_progress: 'In Progress',
     completed: 'Completed',
   };

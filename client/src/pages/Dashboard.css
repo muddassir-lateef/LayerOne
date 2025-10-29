@@ -192,6 +192,37 @@
   color: #c53030;
 }
 
+.status-categorizing {
+  background: #bee3f8;
+  color: #2c5282;
+}
+
+.status-ranking {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.status-draft-ready {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-draft-progress {
+  background: #f3e8ff;
+  color: #7c3aed;
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.status-finalized {
+  background: #d1fae5;
+  color: #065f46;
+}
+
 .status-progress {
   background: #bee3f8;
   color: #2c5282;

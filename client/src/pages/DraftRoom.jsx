@@ -10,8 +10,10 @@ import {
   makePick,
   updateDraftSession,
   getNextPickTeam,
-  getNextCategory
+  getNextCategory,
+  logDraftEvent
 } from '../services/draftService';
+import { PlayerCard } from '../components/PlayerCard';
 import './DraftRoom.css';
 
 const DraftRoom = () => {
@@ -25,10 +27,15 @@ const DraftRoom = () => {
   const [teams, setTeams] = useState([]);
   const [availablePlayers, setAvailablePlayers] = useState([]);
   const [draftPicks, setDraftPicks] = useState([]);
+  const [captainPresence, setCaptainPresence] = useState([]);
+  const [captainRegistrations, setCaptainRegistrations] = useState({});
+  const [realtimeChannel, setRealtimeChannel] = useState(null);
   const [currentTeam, setCurrentTeam] = useState(null);
   const [myTeam, setMyTeam] = useState(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isCaptain, setIsCaptain] = useState(false);
+  const [isSpectator, setIsSpectator] = useState(false);
   const [error, setError] = useState(null);
   const [picking, setPicking] = useState(false);
 
@@ -37,25 +44,113 @@ const DraftRoom = () => {
     
     // Subscribe to real-time updates
     const channel = supabase
-      .channel(`draft:${tournamentId}`)
+      .channel(`draft:${tournamentId}`, {
+        config: {
+          presence: {
+            key: user?.id, // Use user ID as presence key
+          },
+        },
+      })
+      // Listen to presence sync (when presence state changes)
+      .on('presence', { event: 'sync' }, () => {
+        const presenceState = channel.presenceState();
+        console.log('Presence sync:', presenceState);
+        
+        // Convert presence state to array format
+        const presenceArray = Object.keys(presenceState).map(key => ({
+          captain_id: key,
+          is_online: true,
+          user_data: presenceState[key][0], // Get first presence object
+        }));
+        setCaptainPresence(presenceArray);
+      })
+      // Listen to presence join
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log('Captain joined:', key, newPresences);
+      })
+      // Listen to presence leave
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        console.log('Captain left:', key, leftPresences);
+      })
+      // Listen to postgres changes for draft picks
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'draft_picks',
         filter: `draft_session_id=eq.${draftSession?.id}`
       }, handlePickUpdate)
+      // Listen to postgres changes for draft sessions
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'draft_sessions',
         filter: `tournament_id=eq.${tournamentId}`
       }, handleSessionUpdate)
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Realtime channel subscribed');
+          setRealtimeChannel(channel);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tournamentId]);
+  }, [tournamentId, user?.id]);
+
+  // Track captain presence when they're a captain
+  useEffect(() => {
+    if (!isCaptain || !realtimeChannel || !user || !draftSession) return;
+
+    const trackPresence = async () => {
+      try {
+        console.log('Tracking captain presence...');
+        await realtimeChannel.track({
+          user_id: user.id,
+          online_at: new Date().toISOString(),
+          team: myTeam?.draft_order,
+        });
+        console.log('Captain presence tracked');
+        
+        // Log captain connection event (non-blocking)
+        if (draftSession?.id && myTeam?.id) {
+          logDraftEvent(
+            draftSession.id,
+            'captain_connected',
+            user.id,
+            myTeam.id,
+            { team_order: myTeam.draft_order }
+          ).catch(err => console.error('Event log failed:', err));
+        }
+      } catch (err) {
+        console.error('Error tracking presence:', err);
+      }
+    };
+
+    trackPresence();
+
+    // Cleanup: untrack when leaving
+    return () => {
+      if (realtimeChannel) {
+        console.log('Untracking captain presence...');
+        
+        // Log disconnection event (non-blocking)
+        if (draftSession?.id && myTeam?.id) {
+          logDraftEvent(
+            draftSession.id,
+            'captain_disconnected',
+            user.id,
+            myTeam.id,
+            { team_order: myTeam.draft_order }
+          ).catch(err => console.error('Event log failed:', err));
+        }
+        
+        realtimeChannel.untrack().catch(err => {
+          console.error('Error untracking presence:', err);
+        });
+      }
+    };
+  }, [isCaptain, realtimeChannel, user, draftSession, myTeam]);
 
   const loadDraftData = async () => {
     try {
@@ -84,6 +179,10 @@ const DraftRoom = () => {
       // Find my team (if I'm a captain)
       const myTeamData = teamsData.find(t => t.captain_id === user?.id);
       setMyTeam(myTeamData);
+      setIsCaptain(!!myTeamData);
+      
+      // Check if user is a spectator (not admin, not captain)
+      setIsSpectator(tournamentData.admin_id !== user?.id && !myTeamData);
 
       // Load available players for current category
       if (session.current_category) {
@@ -94,6 +193,23 @@ const DraftRoom = () => {
       // Load draft picks
       const picks = await getDraftPicks(session.id);
       setDraftPicks(picks);
+
+      // Load captain registrations
+      const captainIds = teamsData.map(t => t.captain_id);
+      const { data: registrations, error: regError } = await supabase
+        .from('registrations')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .in('user_id', captainIds);
+
+      if (regError) throw regError;
+      
+      // Create a map of captain_id -> registration
+      const regMap = {};
+      registrations.forEach(reg => {
+        regMap[reg.user_id] = reg;
+      });
+      setCaptainRegistrations(regMap);
 
       // Calculate current pick
       updateCurrentPick(session, teamsData, picks);
@@ -120,14 +236,50 @@ const DraftRoom = () => {
     setIsMyTurn(nextTeam?.captain_id === user?.id);
   };
 
-  const handlePickUpdate = (payload) => {
+  const handlePickUpdate = async (payload) => {
     console.log('Pick update:', payload);
-    loadDraftData(); // Reload all data
+    
+    // Only reload picks and update current pick
+    if (draftSession?.id) {
+      const picks = await getDraftPicks(draftSession.id);
+      setDraftPicks(picks);
+      
+      // Update available players for current category
+      if (draftSession.current_category) {
+        const players = await getAvailablePlayers(tournamentId, draftSession.current_category);
+        setAvailablePlayers(players);
+      }
+      
+      // Update current pick
+      updateCurrentPick(draftSession, teams, picks);
+    }
   };
 
-  const handleSessionUpdate = (payload) => {
+  const handleSessionUpdate = async (payload) => {
     console.log('Session update:', payload);
-    loadDraftData(); // Reload all data
+    
+    // Only reload session and related data
+    const session = await getDraftSession(tournamentId);
+    setDraftSession(session);
+    
+    // Update available players if category changed
+    if (session.current_category) {
+      const players = await getAvailablePlayers(tournamentId, session.current_category);
+      setAvailablePlayers(players);
+    }
+    
+    // Update current pick
+    const picks = await getDraftPicks(session.id);
+    updateCurrentPick(session, teams, picks);
+  };
+
+  const handlePresenceUpdate = async (payload) => {
+    console.log('Presence update:', payload);
+    // Only reload captain presence
+    if (draftSession?.id) {
+      const presence = await getCaptainPresence(draftSession.id);
+      setCaptainPresence(presence);
+    }
   };
 
   const handlePlayerPick = async (player) => {
@@ -230,7 +382,7 @@ const DraftRoom = () => {
       {/* Header */}
       <div className="draft-room-header">
         <div>
-          <h1>Draft Room</h1>
+          <h1>Draft Room {isSpectator && <span className="spectator-badge">Spectator Mode</span>}</h1>
           <p className="draft-status">
             Status: <span className={`status-${draftSession?.status}`}>{draftSession?.status}</span>
             {draftSession?.current_category && (
@@ -246,10 +398,69 @@ const DraftRoom = () => {
         </button>
       </div>
 
+      {/* Spectator Notice */}
+      {isSpectator && draftSession?.status !== 'completed' && (
+        <div className="spectator-notice">
+          👁️ You are viewing this draft as a spectator. Only captains and admins can make picks.
+        </div>
+      )}
+
       {/* Waiting for captains */}
       {draftSession?.status === 'waiting_for_captains' && (
         <div className="waiting-section">
           <h3>Waiting for all captains to connect...</h3>
+          
+          {/* Captain Presence Indicators */}
+          <div className="captain-presence-grid">
+            {teams.map(team => {
+              const presence = captainPresence.find(p => p.captain_id === team.captain_id);
+              const isOnline = presence?.is_online || false;
+              
+              const captainReg = captainRegistrations[team.captain_id];
+              
+              return (
+                <PlayerCard key={team.id} registration={captainReg}>
+                  <div className={`captain-presence-card ${isOnline ? 'online' : 'offline'}`}>
+                    <div className="captain-presence-avatar-wrapper">
+                      {captainReg?.discord_avatar_url ? (
+                        <img
+                          src={captainReg.discord_avatar_url}
+                          alt={captainReg.discord_username}
+                          className="captain-presence-avatar"
+                        />
+                      ) : (
+                        <div className="captain-presence-avatar captain-avatar-placeholder">
+                          {captainReg?.discord_username?.charAt(0).toUpperCase() || 'C'}
+                        </div>
+                      )}
+                      <div className={`presence-indicator ${isOnline ? 'online' : 'offline'}`}>
+                        {isOnline ? '●' : '○'}
+                      </div>
+                    </div>
+                    <div className="captain-presence-info">
+                      <div className="captain-presence-name">
+                        {captainReg?.discord_username || `Captain ${team.draft_order}`}
+                      </div>
+                      <div className="captain-presence-team">Team {team.draft_order}</div>
+                      {captainReg?.category && (
+                        <div className={`captain-category-badge ${captainReg.category.toLowerCase().replace('-', '')}`}>
+                          {captainReg.category}
+                        </div>
+                      )}
+                      <div className={`captain-presence-status ${isOnline ? 'online' : 'offline'}`}>
+                        {isOnline ? '✓ Connected' : 'Waiting...'}
+                      </div>
+                    </div>
+                  </div>
+                </PlayerCard>
+              );
+            })}
+          </div>
+
+          <div className="connection-summary">
+            {captainPresence.filter(p => p.is_online).length} / {teams.length} captains connected
+          </div>
+
           {isAdmin && draftSession.all_captains_connected && (
             <button onClick={handleStartDraft} className="btn-primary btn-large">
               Start Draft
@@ -289,9 +500,9 @@ const DraftRoom = () => {
                   {availablePlayers.map(player => (
                     <div
                       key={player.user_id}
-                      className={`player-card ${isMyTurn ? 'pickable' : ''}`}
-                      onClick={() => isMyTurn && handlePlayerPick(player)}
-                      style={{ cursor: isMyTurn ? 'pointer' : 'default' }}
+                      className={`player-card ${isMyTurn && !isSpectator ? 'pickable' : ''}`}
+                      onClick={() => isMyTurn && !isSpectator && handlePlayerPick(player)}
+                      style={{ cursor: isMyTurn && !isSpectator ? 'pointer' : 'default' }}
                     >
                       <img
                         src={player.discord_avatar_url || `https://i.pravatar.cc/150?u=${player.user_id}`}

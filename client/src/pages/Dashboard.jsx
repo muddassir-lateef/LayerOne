@@ -42,9 +42,9 @@ export function Dashboard() {
     if (publicError) {
       console.error(publicError);
     } else {
-      // Filter to only show tournaments user doesn't own and are open for registration
+      // Filter to only show tournaments user doesn't own
       const filtered = (publicData || []).filter(t => 
-        t.admin_id !== user?.id && t.status === 'registration_open'
+        t.admin_id !== user?.id
       );
       setPublicTournaments(filtered);
     }
@@ -65,6 +65,11 @@ export function Dashboard() {
       draft: 'status-draft',
       registration_open: 'status-open',
       registration_closed: 'status-closed',
+      categorizing: 'status-categorizing',
+      awaiting_captain_ranking: 'status-ranking',
+      draft_ready: 'status-draft-ready',
+      draft_in_progress: 'status-draft-progress',
+      teams_finalized: 'status-finalized',
       in_progress: 'status-progress',
       completed: 'status-completed',
     };
@@ -122,7 +127,7 @@ export function Dashboard() {
               marginBottom: '1rem',
               color: '#111827'
             }}>
-              Open for Registration
+              Public Tournaments
             </h2>
             <div className="tournaments-grid">
               {publicTournaments.map((tournament) => (

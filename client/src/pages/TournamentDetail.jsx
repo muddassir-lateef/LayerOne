@@ -46,8 +46,8 @@ export function TournamentDetail() {
       const mapsData = await getTournamentMaps(id);
       setMaps(mapsData);
 
-      // Load registrations (if registration is open or closed)
-      if (tournamentData.status === 'registration_open' || tournamentData.status === 'registration_closed') {
+      // Load registrations (if tournament is published - not in draft)
+      if (tournamentData.status !== 'draft') {
         const registrationsData = await getTournamentRegistrations(id);
         setRegistrations(registrationsData);
 
@@ -250,24 +250,6 @@ export function TournamentDetail() {
                 Rank Captains
               </button>
             )}
-            {(tournament.status === 'draft_ready' || tournament.status === 'draft_in_progress') && (
-              <button
-                onClick={() => navigate(`/tournaments/${id}/draft`)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#f59e0b',
-                  color: 'white',
-                  borderRadius: '0.375rem',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  animation: tournament.status === 'draft_in_progress' ? 'pulse 2s ease-in-out infinite' : 'none'
-                }}
-              >
-                {tournament.status === 'draft_in_progress' ? '🔴 Go to Live Draft' : '📋 Go to Draft Room'}
-              </button>
-            )}
             <button
               onClick={() => navigate(`/tournaments/${id}/edit`)}
               style={{
@@ -284,6 +266,26 @@ export function TournamentDetail() {
               Edit
             </button>
           </div>
+        )}
+
+        {/* Go to Draft button - visible to everyone */}
+        {(tournament.status === 'draft_ready' || tournament.status === 'draft_in_progress') && (
+          <button
+            onClick={() => navigate(`/tournaments/${id}/draft`)}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#f59e0b',
+              color: 'white',
+              borderRadius: '0.375rem',
+              fontWeight: '600',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              animation: tournament.status === 'draft_in_progress' ? 'pulse 2s ease-in-out infinite' : 'none'
+            }}
+          >
+            {tournament.status === 'draft_in_progress' ? '🔴 Go to Live Draft' : '📋 Go to Draft Room'}
+          </button>
         )}
       </div>
 
@@ -481,8 +483,8 @@ export function TournamentDetail() {
         </div>
       </div>
 
-      {/* Registration Section */}
-      {(isRegistrationOpen || tournament.status === 'registration_closed') && (
+      {/* Registration/Participants Section */}
+      {(isRegistrationOpen || tournament.status === 'registration_closed' || tournament.status === 'categorizing' || tournament.status === 'awaiting_captain_ranking' || tournament.status === 'draft_ready' || tournament.status === 'draft_in_progress' || tournament.status === 'teams_finalized') && (
         <div style={{
           marginTop: '2rem',
           backgroundColor: 'white',
