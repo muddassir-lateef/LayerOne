@@ -14,6 +14,8 @@ import { CreateTournament } from './pages/CreateTournament';
 import { TournamentDetail } from './pages/TournamentDetail';
 import { TournamentRegistration } from './pages/TournamentRegistration';
 import PlayerCategories from './pages/PlayerCategories';
+import CaptainRanking from './pages/CaptainRanking';
+import DraftRoom from './pages/DraftRoom';
 import './App.css';
 
 function App() {
@@ -75,6 +77,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <PlayerCategories />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/tournaments/:id/captains" 
+            element={
+              <ProtectedRoute>
+                <CaptainRanking />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/tournaments/:id/draft" 
+            element={
+              <ProtectedRoute>
+                <DraftRoom />
               </ProtectedRoute>
             } 
           />

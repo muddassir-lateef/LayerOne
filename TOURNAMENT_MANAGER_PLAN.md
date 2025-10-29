@@ -98,7 +98,7 @@ tournaments (
     -- Future: 'single_elimination', 'double_elimination', etc.
   team_size: integer DEFAULT 3
     -- Currently fixed at 3, but field allows future flexibility
-  status: enum ('draft', 'registration_open', 'registration_closed', 'in_progress', 'completed')
+  status: enum ('draft', 'registration_open', 'registration_closed', 'categorizing', 'awaiting_captain_ranking', 'draft_ready', 'draft_in_progress', 'teams_finalized', 'in_progress', 'completed')
   registration_deadline: timestamp (nullable, future feature)
   start_date: timestamp (nullable, future feature)
   created_at: timestamp
@@ -185,40 +185,105 @@ registrations (
 
 #### 4.1 Player Categories
 **Feature**: Admin Assigns Categories
-- Admin reviews registered players
+- Admin reviews registered players after registration closes
 - Assigns players to skill categories:
-  - S-Tier
+  - S-Tier (becomes captains automatically)
   - A-Tier
   - B-Tier
-  - C-Tier
-  - (Customizable category names)
+  - Misc
 - Can view player preferences while categorizing
+- Must complete categorization before starting tournament
 
-#### 4.2 Captain Selection
-**Feature**: Admin Appoints Captains
-- Admin selects captains from player pool
-- Number of captains = number of teams
-- Captains are removed from draftable player pool
+#### 4.2 Start Tournament & Automatic Captain Selection
+**Feature**: Admin Starts Tournament
+- After registration closes and all players are categorized
+- Admin clicks "Start Tournament" button
+- **All S-Tier players automatically become team captains**
+- Number of teams = number of S-Tier players
+- S-Tier players are **removed from draftable pool**
+- Tournament status changes to `awaiting_captain_ranking`
 
-#### 4.3 Bidding/Draft System
-**Feature**: Snake Draft by Category
-- Draft proceeds category by category (S → A → B → C)
+**Feature**: Admin Ranks Captains (Draft Order)
+- Admin sees list of all S-Tier captains
+- Admin **ranks/orders the captains** (drag & drop or numbered input)
+  - Rank 1: First pick in draft
+  - Rank 2: Second pick in draft
+  - Rank 3: Third pick, etc.
+- This ranking determines:
+  - **Snake pattern order** (1→2→3→4, then 4→3→2→1)
+  - **Team numbering** (Team 1, Team 2, etc.)
+- Admin saves captain ranking
+- Teams are created with assigned `draft_order`
+- Tournament status changes to `draft_ready`
+- Draft room URL becomes available
+
+**Captain Requirements - Pre-Draft**:
+- **All captains must log in and open the draft screen**
+- Draft screen shows:
+  - "Waiting for captains..." status
+  - List of captains with online/offline indicators
+  - Green checkmark when captain connects
+  - Red X when captain is offline
+- Admin can see real-time captain presence
+- **Draft cannot start until ALL captains are connected**
+- Once all captains are online, admin sees "Start Draft" button
+- Admin clicks "Start Draft" to begin
+- Tournament status changes to `draft_in_progress`
+
+#### 4.3 Live Snake Draft System
+**Feature**: Real-time Snake Draft (Supabase Realtime)
+- **Live Draft Room** using Supabase Realtime subscriptions
+- Draft proceeds category by category (A → B → Misc)
 - Within each category, snake pattern:
   - Round 1: Captain 1 → Captain 2 → Captain 3 → Captain 4
   - Round 2: Captain 4 → Captain 3 → Captain 2 → Captain 1
   - Round 3: Captain 1 → Captain 2 → Captain 3 → Captain 4
-  - (Pattern continues)
-- Live draft interface shows:
-  - Current pick
-  - Player info (preferences, category)
-  - Timer per pick (optional)
-  - Draft history
+  - (Pattern continues until category is empty)
+- Then moves to next category
 
-**Alternative**: Bidding War
-- Each captain has budget (e.g., 1000 points)
-- Players are auctioned one by one
-- Captains bid for players
-- Highest bidder gets the player
+**Live Draft Interface** (Real-time Updates):
+- **Captain Status Bar**: Shows all captains with draft order
+  - Captain 1, Captain 2, Captain 3, Captain 4, etc.
+  - Online/offline status indicators (green dot = online)
+  - Disconnection alerts (if captain drops mid-draft)
+- **Current Pick Indicator**: Highlights which captain is picking
+  - Large arrow or highlight on current captain
+  - "Your Turn!" notification for active captain
+  - Shows time remaining for current pick
+- **Available Players Panel**: Shows remaining players in current category
+  - Player card displays:
+    - Discord username & avatar
+    - Category/tier badge
+    - Preferred position (flank/pocket)
+    - Preferred civilizations (top 3)
+    - Preferred maps (top 3)
+    - Registration notes (truncated with "see more")
+  - Click to expand full player details
+  - Only current captain can click "Draft This Player"
+- **Timer Per Pick**: Countdown timer (e.g., 60 seconds)
+  - Visual countdown with color changes (green→yellow→red)
+  - Auto-skip if time expires (random pick or skip)
+  - Admin can pause/resume timer
+  - Admin can adjust timer duration mid-draft
+- **Draft History**: Live feed of all picks made
+  - Shows: Pick #, Captain name, Player picked, Category, Time of pick
+  - Scrollable list with latest at top
+- **Team Rosters**: Live view of each team being built
+  - Shows captain + picked players
+  - Color-coded by team
+  - Position indicators (flank/pocket if selected)
+- **Category Progress**: Shows how many players left in current category
+  - Progress bar: "A-Tier: 5/8 players drafted"
+  - Automatically moves to next category when current is empty
+
+**Real-time Features** (Supabase Realtime):
+- All participants see updates instantly
+- Captains can only pick when it's their turn (button disabled otherwise)
+- Admin can override/undo picks if needed
+- Pick is locked once submitted (no take-backs without admin)
+- Automatic progression to next category when current is empty
+- Captain disconnection warnings (if heartbeat stops)
+- Draft can be paused if captain disconnects
 
 **Database Tables**:
 ```sql
@@ -226,16 +291,18 @@ player_categories (
   id: uuid (primary key)
   tournament_id: uuid (foreign key -> tournaments)
   user_id: uuid (foreign key -> auth.users(id))
-  category: string ('S-Tier', 'A-Tier', etc.)
+  category: string ('S-Tier', 'A-Tier', 'B-Tier', 'Misc')
+  assigned_by: uuid (foreign key -> auth.users(id))
   assigned_at: timestamp
 )
 
 teams (
   id: uuid (primary key)
   tournament_id: uuid (foreign key -> tournaments)
-  name: string (initially auto-generated, then customizable)
+  name: string (auto-generated: "Team 1", "Team 2", etc., then customizable)
   logo_url: string (nullable)
   captain_id: uuid (foreign key -> auth.users(id))
+  draft_order: integer (1, 2, 3, 4... determines snake pattern position, assigned by admin ranking)
   created_at: timestamp
 )
 
@@ -244,21 +311,75 @@ team_members (
   team_id: uuid (foreign key -> teams)
   user_id: uuid (foreign key -> auth.users(id))
   is_captain: boolean
-  draft_round: integer
-  draft_order: integer
+  draft_round: integer (which round they were picked)
+  draft_pick_number: integer (sequential pick number across all rounds)
+  category_when_drafted: string (category they were in when picked)
   position_preference: integer (1, 2, or 3)
+  joined_at: timestamp
 )
 
-draft_history (
+draft_sessions (
   id: uuid (primary key)
   tournament_id: uuid (foreign key -> tournaments)
+  status: enum ('waiting_for_captains', 'ready', 'in_progress', 'paused', 'completed')
+  current_category: string ('A-Tier', 'B-Tier', 'Misc', null)
+  current_pick_team_id: uuid (foreign key -> teams, nullable)
+  current_round: integer
+  pick_timer_seconds: integer (default 60)
+  pick_deadline: timestamp (nullable, when current pick expires)
+  all_captains_connected: boolean (default false)
+  started_at: timestamp
+  completed_at: timestamp (nullable)
+)
+
+draft_picks (
+  id: uuid (primary key)
+  draft_session_id: uuid (foreign key -> draft_sessions)
   team_id: uuid (foreign key -> teams)
   user_id: uuid (foreign key -> auth.users(id))
-  pick_number: integer
-  category: string
-  timestamp: timestamp
+  pick_number: integer (sequential across entire draft)
+  round_number: integer (within current category)
+  category: string (category of player picked)
+  picked_at: timestamp
+  time_taken_seconds: integer (how long captain took to pick)
+)
+
+captain_presence (
+  id: uuid (primary key)
+  draft_session_id: uuid (foreign key -> draft_sessions)
+  captain_id: uuid (foreign key -> auth.users(id))
+  is_online: boolean
+  last_heartbeat: timestamp
+  connected_at: timestamp
 )
 ```
+
+**Supabase Realtime Channels**:
+- `draft:${tournament_id}` - Main draft channel
+  - Subscribe to: draft_sessions, draft_picks, captain_presence
+  - Real-time events: 
+    - `captain_joined` - When captain connects to draft room
+    - `captain_left` - When captain disconnects
+    - `captain_heartbeat` - Periodic presence updates (every 10s)
+    - `all_captains_ready` - When all captains are connected
+    - `draft_started` - When admin starts the draft
+    - `pick_made` - When a player is drafted
+    - `timer_updated` - Timer countdown updates
+    - `category_changed` - When draft moves to next category
+    - `draft_paused` - When admin pauses draft
+    - `draft_resumed` - When admin resumes draft
+  
+**Draft State Management**:
+- Current pick stored in `draft_sessions.current_pick_team_id`
+- Timer tracked via `draft_sessions.pick_deadline`
+- Snake pattern calculated from `teams.draft_order` and current round
+- Pick validation: 
+  - Only current captain can pick
+  - Only available players (not already drafted, in current category)
+  - Captain must be online (heartbeat within last 30 seconds)
+- Captain ranking determines `teams.draft_order` (1, 2, 3, 4...)
+- All captains must be connected before `all_captains_connected = true`
+- Draft screen polls/subscribes to `captain_presence` for real-time status
 
 #### 4.4 Team Customization
 **Feature**: Admin Sets Team Names & Logos
@@ -575,10 +696,11 @@ CREATE TRIGGER on_auth_user_created
 12. **Create Tournament** - Multi-step tournament creation wizard
 13. **Tournament Admin Panel** - Central admin dashboard
 14. **Player Categories** - Assign categories
-15. **Captain Selection** - Appoint captains
-16. **Draft Management** - Manage draft process
-17. **Result Entry** - Enter match results
-18. **Tournament Settings** - Modify settings
+15. **Captain Ranking** - Rank S-Tier captains for draft order
+16. **Draft Room (Admin View)** - Monitor draft, pause/resume, override picks
+17. **Draft Management** - Pre-draft captain presence monitoring
+18. **Result Entry** - Enter match results
+19. **Tournament Settings** - Modify settings
 
 ---
 

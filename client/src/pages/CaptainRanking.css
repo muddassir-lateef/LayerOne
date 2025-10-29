@@ -1,0 +1,166 @@
+.captain-ranking-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.captain-ranking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.captain-ranking-header h1 {
+  margin: 0 0 0.5rem 0;
+  color: #1a1a1a;
+}
+
+.subtitle {
+  color: #666;
+  margin: 0;
+}
+
+.ranking-explanation {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.ranking-explanation h3 {
+  margin: 0 0 0.5rem 0;
+  color: #1a1a1a;
+}
+
+.ranking-explanation p {
+  margin: 0 0 1rem 0;
+  color: #666;
+}
+
+.snake-example {
+  background: white;
+  border-radius: 4px;
+  padding: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+.snake-example div {
+  margin: 0.25rem 0;
+  color: #2563eb;
+}
+
+.captains-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.captain-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.captain-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
+}
+
+.captain-card.dragging {
+  cursor: grabbing;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  transform: rotate(2deg);
+}
+
+.captain-rank {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2563eb;
+  min-width: 50px;
+  text-align: center;
+}
+
+.captain-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.captain-info {
+  flex: 1;
+}
+
+.captain-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+}
+
+.captain-tier {
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.drag-handle {
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+}
+
+.ranking-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 0;
+}
+
+.btn-large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.btn-large:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #1a1a1a;
+}
+
+.empty-state p {
+  color: #666;
+  margin: 0 0 1.5rem 0;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.error {
+  color: #dc2626;
+}

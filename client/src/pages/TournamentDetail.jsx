@@ -233,6 +233,41 @@ export function TournamentDetail() {
                 Categorize Players
               </button>
             )}
+            {(tournament.status === 'registration_closed' || tournament.status === 'categorizing' || tournament.status === 'awaiting_captain_ranking') && (
+              <button
+                onClick={() => navigate(`/tournaments/${id}/captains`)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#8b5cf6',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Rank Captains
+              </button>
+            )}
+            {(tournament.status === 'draft_ready' || tournament.status === 'draft_in_progress') && (
+              <button
+                onClick={() => navigate(`/tournaments/${id}/draft`)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#f59e0b',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  animation: tournament.status === 'draft_in_progress' ? 'pulse 2s ease-in-out infinite' : 'none'
+                }}
+              >
+                {tournament.status === 'draft_in_progress' ? '🔴 Go to Live Draft' : '📋 Go to Draft Room'}
+              </button>
+            )}
             <button
               onClick={() => navigate(`/tournaments/${id}/edit`)}
               style={{
@@ -608,6 +643,11 @@ function getStatusLabel(status) {
     'draft': 'Draft',
     'registration_open': 'Registration Open',
     'registration_closed': 'Registration Closed',
+    'categorizing': 'Categorizing Players',
+    'awaiting_captain_ranking': 'Awaiting Captain Ranking',
+    'draft_ready': 'Draft Ready',
+    'draft_in_progress': 'Draft In Progress',
+    'teams_finalized': 'Teams Finalized',
     'in_progress': 'In Progress',
     'completed': 'Completed'
   };
@@ -619,6 +659,11 @@ function getStatusColor(status) {
     'draft': { bg: '#e5e7eb', text: '#374151' },
     'registration_open': { bg: '#dcfce7', text: '#166534' },
     'registration_closed': { bg: '#fed7aa', text: '#9a3412' },
+    'categorizing': { bg: '#dbeafe', text: '#1e40af' },
+    'awaiting_captain_ranking': { bg: '#e0e7ff', text: '#4338ca' },
+    'draft_ready': { bg: '#fef3c7', text: '#92400e' },
+    'draft_in_progress': { bg: '#f3e8ff', text: '#7c3aed' },
+    'teams_finalized': { bg: '#d1fae5', text: '#065f46' },
     'in_progress': { bg: '#dbeafe', text: '#1e40af' },
     'completed': { bg: '#f3e8ff', text: '#6b21a8' }
   };
