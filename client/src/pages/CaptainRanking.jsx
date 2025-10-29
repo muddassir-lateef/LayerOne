@@ -305,6 +305,8 @@ const CaptainRanking = () => {
       setStarting(true);
       setError(null);
 
+      console.log('Starting tournament for:', tournamentId);
+
       // Get existing teams
       const { data: teams, error: teamsError } = await supabase
         .from('teams')
@@ -318,7 +320,27 @@ const CaptainRanking = () => {
         throw new Error('No teams found. Please save ranking first.');
       }
 
+      console.log('Found teams:', teams);
+
+      // Check if draft session already exists
+      const { data: existingSession, error: existingError } = await supabase
+        .from('draft_sessions')
+        .select('id')
+        .eq('tournament_id', tournamentId)
+        .maybeSingle();
+
+      if (existingError) {
+        console.error('Error checking existing session:', existingError);
+      }
+
+      if (existingSession) {
+        console.log('Draft session already exists, navigating to it');
+        navigate(`/tournaments/${tournamentId}/draft`);
+        return;
+      }
+
       // Create draft session
+      console.log('Creating draft session...');
       const { data: draftSession, error: draftError } = await supabase
         .from('draft_sessions')
         .insert({
@@ -330,29 +352,34 @@ const CaptainRanking = () => {
         .select()
         .single();
 
-      if (draftError) throw draftError;
+      if (draftError) {
+        console.error('Draft session creation error:', draftError);
+        throw draftError;
+      }
 
-      // Create captain presence records
-      const presenceRecords = teams.map(team => ({
-        draft_session_id: draftSession.id,
-        captain_id: team.captain_id,
-        team_id: team.id,
-        is_online: false,
-      }));
+      console.log('Draft session created:', draftSession);
 
-      const { error: presenceError } = await supabase
-        .from('captain_presence')
-        .insert(presenceRecords);
-
-      if (presenceError) throw presenceError;
+      // Note: Captain presence is now handled by Supabase Realtime Presence
+      // No need to create database records - captains will track presence when they join
 
       // Update tournament status
+      console.log('Updating tournament status...');
       const { error: updateError } = await supabase
         .from('tournaments')
         .update({ status: 'draft_ready' })
         .eq('id', tournamentId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Tournament update error:', updateError);
+        throw updateError;
+      }
+
+      console.log('Tournament status updated');
+
+      // Small delay to ensure database commit completes
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      console.log('Navigating to draft room');
 
       // Navigate to draft room
       navigate(`/tournaments/${tournamentId}/draft`);

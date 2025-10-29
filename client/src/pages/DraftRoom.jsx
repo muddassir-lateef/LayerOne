@@ -41,13 +41,18 @@ const DraftRoom = () => {
 
   useEffect(() => {
     loadDraftData();
+  }, [tournamentId]);
+
+  // Set up Realtime channel after draft session is loaded
+  useEffect(() => {
+    if (!draftSession || !user) return;
     
     // Subscribe to real-time updates
     const channel = supabase
       .channel(`draft:${tournamentId}`, {
         config: {
           presence: {
-            key: user?.id, // Use user ID as presence key
+            key: user.id, // Use user ID as presence key
           },
         },
       })
@@ -77,7 +82,7 @@ const DraftRoom = () => {
         event: '*',
         schema: 'public',
         table: 'draft_picks',
-        filter: `draft_session_id=eq.${draftSession?.id}`
+        filter: `draft_session_id=eq.${draftSession.id}`
       }, handlePickUpdate)
       // Listen to postgres changes for draft sessions
       .on('postgres_changes', {
@@ -96,7 +101,7 @@ const DraftRoom = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tournamentId, user?.id]);
+  }, [draftSession?.id, tournamentId, user?.id]);
 
   // Track captain presence when they're a captain
   useEffect(() => {
@@ -169,8 +174,20 @@ const DraftRoom = () => {
       setIsAdmin(tournamentData.admin_id === user?.id);
 
       // Load draft session
-      const session = await getDraftSession(tournamentId);
-      setDraftSession(session);
+      let session;
+      try {
+        console.log('Loading draft session for tournament:', tournamentId);
+        session = await getDraftSession(tournamentId);
+        console.log('Draft session loaded:', session);
+        setDraftSession(session);
+      } catch (sessionError) {
+        console.error('Draft session error details:', sessionError);
+        // If no draft session exists, show a helpful message
+        if (sessionError.code === 'PGRST116' || sessionError.message.includes('No draft session found')) {
+          throw new Error('No draft session found. Please go back to Captain Ranking and click "Start Tournament" first.');
+        }
+        throw sessionError;
+      }
 
       // Load teams
       const teamsData = await getTeams(tournamentId);

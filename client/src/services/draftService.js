@@ -50,9 +50,10 @@ export async function getDraftSession(tournamentId) {
     .from('draft_sessions')
     .select('*')
     .eq('tournament_id', tournamentId)
-    .single();
+    .maybeSingle();
   
   if (error) throw error;
+  if (!data) throw new Error('No draft session found for this tournament');
   return data;
 }
 
